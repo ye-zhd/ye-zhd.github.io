@@ -6,23 +6,49 @@
  <title>Happy Birthday</title>
  <link rel="stylesheet" href="css/jquery.fullPage.css">
  <link rel="stylesheet" href="css/memories.css">
- <script>
-   
-function audioAutoPlay() {
-    var audio = document.getElementById('music');
-    audio.play();
-    document.addEventListener("WeixinJSBridgeReady", function () {
-        audio.play();
-    }, false);
-}
-audioAutoPlay();//默认执行
-
-
- </script>
 </head>
 
 <body>
   <!-- 背景音乐 -->
+
+
+  <audio id="bgmusic" src="https://music.163.com/outchain/player?type=2&id=1899051377&auto=1&height=66" autoplay preload loop controls></audio>
+  <!-- 当使用方法1时必须加载 JS-SDK 的 JS 文件, 方法2不需要加载这个 JS -->
+  <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+  <script>
+  // 方法1: 现在微信官方已经推出了微信JS-SDK, 最好还是不要使用"野生"方式, 因为不知道什么时候就可以不能用了!
+  // http://mp.weixin.qq.com/wiki/7/aaa137b55fb2e0456bf8dd9148dd613f.html
+  // 通过config接口注入权限验证配置后, 在 ready 中 play 一下 audio
+  function autoPlayAudio1() {
+      wx.config({
+          // 配置信息, 即使不正确也能使用 wx.ready
+          debug: false,
+          appId: '',
+          timestamp: 1,
+          nonceStr: '',
+          signature: '',
+          jsApiList: []
+      });
+      wx.ready(function() {
+          document.getElementById('bgmusic').play();
+      });
+  }
+  // 方法2: "野生"方法, 借用原来老的 WeixinJSBridge
+  function autoPlayAudio2() {
+      window.onload = function() {
+          // alert(typeof WeixinJSBridge);
+          WeixinJSBridge.invoke('getNetworkType', {}, function(e) {
+              // 在这里拿到 e.err_msg, 这里面就包含了所有的网络类型
+              // alert(e.err_msg);
+              document.getElementById('bgmusic').play();
+          });
+      };
+  }
+
+  autoPlayAudio1(); // 推荐使用方法1
+  // autoPlayAudio2(); // 也可以试一试方法2
+  </script>
+
   <div style="display:none">
     <!-- 网易云外链 -->
     <iframe frameborder="yes" border="0" marginwidth="0" marginheight="0" width=330 height=86 src="https://music.163.com/outchain/player?type=2&id=1899051377&auto=1&height=66"></iframe>
@@ -474,7 +500,7 @@ audioAutoPlay();//默认执行
               <div class="ly-txt84">
                  <p>祝福嘛 大多这些那样让人不好意思的话 😊</p>
                  <p>这个有背景音乐的 不知道能不能听见  </p>
-                 <p>你呀 有低血糖记得吃早餐 工作只是生活的一部分 希望你往后的工作轻松点</p>
+                 <p>有低血糖记得吃早餐 工作只是生活的一部分 希望你往后的工作轻松点</p>
                  <p>不止今天 以后每天都能开心</p>
                  <p>最后</p>
                  <p>黄美 生日快乐~</p>
