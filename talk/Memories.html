@@ -6,6 +6,19 @@
  <title>Happy Birthday</title>
  <link rel="stylesheet" href="css/jquery.fullPage.css">
  <link rel="stylesheet" href="css/memories.css">
+ <script>
+   
+function audioAutoPlay() {
+    var audio = document.getElementById('music');
+    audio.play();
+    document.addEventListener("WeixinJSBridgeReady", function () {
+        audio.play();
+    }, false);
+}
+audioAutoPlay();//默认执行
+
+
+ </script>
 </head>
 
 <body>
