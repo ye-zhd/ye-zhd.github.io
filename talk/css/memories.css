@@ -1315,7 +1315,7 @@
 		height: 70%;
 		border-radius: 8px;
 		opacity:0;
-		overflow: visible;
+		overflow: hidden;
 		transition:all 0.5s;
 	}
 	.active .ly-imgbox21{
@@ -2017,7 +2017,7 @@
 	height: 70%;
 	border-radius: 8px;
 	opacity:0;
-	overflow: visible;
+	overflow: hidden;
 	transition:all 0.5s;
 }
 .active .ly-imgbox31{
@@ -2030,7 +2030,7 @@
 	bottom: 0;
 }
 
-.ly-imgbox32{
+.ly-imgbox31{
 	position: absolute;
 	bottom: 0;
 	width: 100%;
@@ -2040,11 +2040,11 @@
 	overflow: hidden;
 	transition:all 0.5s;
 }
-.active .ly-imgbox32{
+.active .ly-imgbox31{
 	opacity:1;
 	transition-delay:3.5s;
 }
-.ly-img32{
+.ly-img31{
 	position: absolute;
 	width: 100%;
 	bottom: 0;
@@ -2309,10 +2309,10 @@
 	transition-delay: 14s;
 }
 .wwww1 {
-	margin-before: 1.5em;
-	margin-after: 1.5em;
-	-webkit-margin-before: 1em;
-	-webkit-margin-after: 1em;
+	margin-before: 0.5em;
+	margin-after: 0.5em;
+	-webkit-margin-before: 0.5em;
+	-webkit-margin-after: 0.5em;
 }
 
 /**                               第七部分                             **/
@@ -2904,10 +2904,6 @@
 	width: 100%;
 	bottom: 0;
 }
-
-/**/
-
-
 /*文本*/
 .ly-txt84 {
 	text-indent:2em;
@@ -2927,7 +2923,7 @@
 
 .active .ly-txt84 {
 	height:500px;
-	transition-delay: 7s;
+	transition-delay: 6.5s;
 }
 
 /**                           第九部分                          **/
