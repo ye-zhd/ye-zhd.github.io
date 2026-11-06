@@ -25,8 +25,6 @@ systemctl enable --now vsftpd
 
 vsftpd 登录时要一路 chdir 到家目录，中间任何一级目录没有 `o+x`，客户端就报 `500 OOPS: chdir`，而且日志里看不出是哪一级。之前查了半天，最后是 `/data/eversec` 少了执行位。
 
-所以脚本里从 `/` 开始把每一级都过一遍，用 `stat -c '%A'` 取第 10 个字符判断 other 有没有 x，没有就补 `chmod o+x`。别一上来 `chmod -R 755 /data`，把整个数据目录的权限都改了不划算。
-
 ```bash
 mkdir -p /data/eversec/data/ftp/evercm/autoUpgrade
 chown root:root /data/eversec/data/ftp/evercm
@@ -43,7 +41,7 @@ chmod 755 /data/eversec/data/ftp/evercm/autoUpgrade
 grep -qxF '/sbin/nologin' /etc/shells || echo '/sbin/nologin' >> /etc/shells
 ```
 
-pam_shells 会拿用户的 shell 去 `/etc/shells` 里比对，没这一行的话密码输对了也是 `530 Login incorrect`。这个坑 ftp 和 sftp 都会踩，后面说 sftp 时还会提到。
+pam_shells 会拿用户的 shell 去 `/etc/shells` 里比对，没这一行的话密码输对了也是 `530 Login incorrect`。这个坑 ftp 和 sftp 都会踩
 
 # 4、vsftpd.conf 重复项
 
@@ -55,11 +53,7 @@ anonymous_enable=NO
 allow_writeable_chroot=YES
 ```
 
-直接 `echo >>` 追加会出现同一个 key 写好几行，vsftpd 取哪条不好说。脚本里的 `dedup_conf` 先 `grep -cE` 数一下，超过 1 行就全删再追加，只有 1 行且值一样就不动，值不一样再加一条（后写的生效）。这样重复跑脚本也不会把配置文件越撑越大。
-
-改完不用手动备份，先 `cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak` 。
-
-5、建用户
+# 5、建用户
 
 ```bash
 useradd -d /data/eversec/data/ftp/evercm -s /sbin/nologin evercm
@@ -119,7 +113,7 @@ chown root:root /data /data/eversec /data/eversec/data /data/eversec/data/ftp
 chmod 755 /data /data/eversec /data/eversec/data /data/eversec/data/ftp
 ```
 
-前面 ftp 那步刚好把 `/data/eversec/data/ftp/evercm` 设成了 root:root 755，正好满足 chroot 下家目录不可写的要求，能写的还是 `autoUpgrade`。两边不用各建一套目录，这点当时还挺省事。
+前面 ftp 那步刚好把 `/data/eversec/data/ftp/evercm` 设成了 root:root 755，正好满足 chroot 下家目录不可写的要求。
 
 `-d /evercm` 是登录后切初始目录，比较新的 OpenSSH 才支持，老版本去掉这个参数，客户端进去自己 `cd evercm`。`/sbin/nologin` 在 sftp 这边也能过，因为 `ForceCommand` 根本不启 shell，加上第 3 步已经把它写进 `/etc/shells`，PAM 不会拦。
 
@@ -128,7 +122,7 @@ sshd -t && systemctl restart sshd
 sftp evercm@127.0.0.1
 ```
 
-`sftp` 能 `ls` 到 autoUpgrade 就对了，`ssh evercm@127.0.0.1` 应该直接被踢掉（ForceCommand 拦住了，不给交互式 shell）。sftp 出问题优先翻 `/var/log/secure`，里面会有 `bad ownership or modes for chroot directory` 这种明确的提示。
+
 
 # 9、几个报错对一下
 
