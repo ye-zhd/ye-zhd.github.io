@@ -1,0 +1,89 @@
+> <font style="color:rgb(34, 34, 38);">[ERROR] InnoDB: Ignoring the redo log due to missing MLOG_CHECKPOINT between the checkpoint</font>
+>
+
+
+
+# 1 问题现象：
+mysql无法启动，数据校验不通过
+
+<!-- 这是一张图片，ocr 内容为：2023-04-19TO6136130.1429412 0 [ERROR] INF INF ODE OVERY. 2023-04-18TE5:36:30.662243Z O [NOTE] INNODE:APPLY BATCH CONPLETED IANODB: LAST WYSOL BINLOG FILE POSITICN A SA52871, FSLE NANE MYSQL-BLA.EEE783 2023-04-18T06:36:30.6622632 E[NOTE] INNCBE: 06:36:30 UTC,MYSQLD GOT SIGNAL 21 I THIS COULD BE BECAUSE YOU HIT A BUG.IT IS SISO POSSIBLE THET THIS BINARY OR ONE OF THE LLBRARIES IT WAS ITNKED AGAINST IS CORRUPT, INPROPERLY BULLT, OR MISCONFIGURED. THIS ERRER CAN ALSO BE CAUSED BY RALFUNCTIONING HARDUERE. ATTENPEING TO COLLECT SONE SNFORRETIEN THET CEULD HELP ELP ELEGNOSE PROBLEN. AS THIS IS A CRASH AND SONETHING IS DEFINITELY WRONG,THE INFORNATION KEY BUFFER S120 8388608 REOD_BUFFER_SIZE-131072 SAX_USED_CONNECTIONSEO MAX THREAD5 3080 THREAD_COUNTME CONNECTION_COUNT-E IT IS POSSIBLE THAT MYSALD COULD USE UP TO KEY BUFFER SITE +(READ BUFFER SIZE + SORT BUFFER STZE)'GAX THREADS - 1220363 K BYTES OF MENARY HOPE THAT'S OK; IF NOT, DECREBSE SONE VERISBLES IN THE EQUATION. THREED POINTER:EXE ATTEMPTING BACKTRACE,YOU CAN USE THE FOLLOWINE INFORNSTICN TO FIND OUT WHERE MYSQLD DIED. IF YOU SCE NO NESSAGES AFTER THIS, SCNETHING WENT TERRIBLY WRONG... STACK_BOTTON . O THREAD_STOCK OX40880 MYSQLD(NY.PRINT_STECKTRECE+0X2C)[OXSCOSED70DIBC] TYSQLD(HANDLE.FATAL.SIENALEEXSE1)[EXS60CEDEDDBCI] /LIB/X85.SE-LINUX-ENU/LIBPTHREAD.50.0(+EX12730)[EX7FC105538730] MIVSQ1D(-22AREC-8EL-OFFSETS_FUNCPKNPKI2DSCE_INDEX INDEX,IPWNPPIEN,BLOCK INFO {+EXLD)[EXSEBEDA2862D] -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1683365842270-caee92b6-0d79-459b-be4e-18978113e572.png)
+
+# 2 问题原因：
+mysql在运行过程中突然中断，导致数据库日志不一致，这可能导致mysql无法启动
+
+# 3 解决办法:
+对于这种情况，能想到的解决方案就是先把Mysql启动，然后将mysql中的数据全部备份，最后创建一个新库，把备份的数据全部导入新库。
+
+  
+msyqld提供了参数：innodb_force_recovery，默认为0，正常启动数据库此值为0，但是我们可以设置此值为1-6，值越大，对现存数据的危害性越大。以下为此值的说明：
+
+```bash
+innodb_force_recovery = 1
+1 (SRV_FORCE_IGNORE_CORRUPT)
+使服务器即使检测到损坏的页也可以运行 。尝试跳过损坏的索引记录和页，这有助于转储表。
+2 (SRV_FORCE_NO_BACKGROUND)
+阻止主线程和任何清除线程运行。如果在清除操作期间发生崩溃，则此恢复值可防止崩溃。
+3 (SRV_FORCE_NO_TRX_UNDO)
+崩溃恢复后 不运行事务回滚。
+4 (SRV_FORCE_NO_IBUF_MERGE)
+防止插入缓冲区合并操作。如果它们会导致崩溃，请不要这样做。不计算表 统计信息。此值可能会永久损坏数据文件。使用此值后，准备删除并重新创建所有二级索引。设置 InnoDB为只读。
+5 (SRV_FORCE_NO_UNDO_LOG_SCAN)
+启动数据库时 不查看撤消日志： InnoDB甚至将未完成的事务也视为已提交。此值可能会永久损坏数据文件。设置InnoDB为只读。
+6 (SRV_FORCE_NO_LOG_REDO)
+不进行与恢复有关的重做日志前回滚。此值可能会永久损坏数据文件。使数据库页面处于过时状态，这又可能导致B树和其他数据库结构遭受更多破坏。设置 InnoDB为只读。
+```
+
+:::danger
+官方文档特别说明：当级别 >= 4 时，可能会对数据库文件造成不可挽回的破坏。所以应尝试从1 开始逐步修改该值启动。
+
+:::
+
+
+
+# 4 解决方案：
+:::danger
+1、vi  /data/eversec/config/mysql.cnf，在mysqld下添加innodb_force_recovery参数（注意尽量从1-6逐渐修改启动）  
+[mysqld]  
+innodb_force_recovery = 4  
+2、Mysql启动后可能为只读模式，进入docker，将数据库文件全部备份，执行如下命令：  
+mysqldump -h127.0.0.1 -uroot -pH*y%eM17Qtz64Zaf@Mysql --all-databases >   
+mysql-20230418-all.sql  
+3、通过docker的cp命令将备份SQL复制到磁盘，命令参考：  
+docker cp 容器ID:SQL路径 Linux路径  
+4，将第一步添加的innodb_force_recovery参数通过#字符注释或者设置为0  
+5、备份mysql挂载的数据文件目录并创建一个相同名字的目录，命令参考：  
+mv /data/eversec/data/mysql /data/eversec/data/mysql-20230418  
+mkdir /data/eversec/data/mysql  
+chmod 777 /data/eversec/data/mysql  
+6、portainer页面重启mysql，页面update操作就行，此时mysql启动后数据库没有数据  
+7、将第二步备份的sql文件复制到mysql容器内部并通过source重新导入库表，参考命令：  
+docker cp 备份SQL位置 容器ID:/home/  
+mysql -uroot -pH*y%eM17Qtz64Zaf@Mysql  
+source /home/SQL文件名;  
+
+:::
+
+
+
+如果删除数据目录新建后还有以下报错则执行如下步骤
+
+>  Ignoring the redo log due to missing MLOG_CHECKPOINT between the checkpoint  
+>
+
+
+
+<!-- 这是一张图片，ocr 内容为：2023-04-18T07:51:0S.350350Z O [NOTE] INNODE: USES EVENT MUTEXES 2333-84-18T87:53:68.3B3532   [NOTE] INNOOB;  GCC BUIJTIN .RTONIC.TUREED.FENCE() 1SED FOR  PENORY BART 2023-04-18TE] INNOS.38E355Z E [NOTE] INNODE: COMPRESSED TABLES USE ;LIB 1.2.11 2023-04-18TE7:51:08.380359Z E [NOTE] INNOD8: USING LINUX NATIVE AIO 2023-04-18TE7:51:0S.383371Z E [NOTE] INNODE: NUMBER OF POOLS: 1 2023-04-18T07:51:08.383482Z E [N 2Z E [NOTE]INNODB:USING CPU CRC32 INSTRUCTIONS 2023-04-18TE7:51:08.6244352 E [NOTE] INNODB: COMPLETED INITLALLZATION OF BUFFER POO] 2023-84-18TE] INN.68.6841482 O [NOTE] INNODB: HIGHEST SUPPORTED FILE FORMST IS BARRACUDE. 2923-64-18T07:51:51:8,7175787  [NOTE] INNOD8; LOG SCAN PRGGRESSED PAST THE CHECKPOINT ISN 2398947589 2833-04-18107:51:51:88,7176972  [UOTE] INNDE; DAJ DARNG RECOVERY: STANNED UP TO JEGUENCE AUMBER 33903 2023-04-18T07:51:08.717708Z E [ER 2923-6+-18TE7:51:85,7177317  [ERROR] INNODB; PLUGIN $NZTSALLZALIZATION ABORTED WITH ERRAR GENERAC ERR 2023-04-18TE7:51:09.31S168Z E [ERROR] PIUGIN 'INNOOB' INIT FUNCTION RETURNED ERROR. 2023-84-18TE7:51:09.31SI912 A  [ERROR) PLUGIN 'INNOOE' REGISTRATION 85 A STORAGE ENGINE FAILED. 2023-04-18TE7:51:09.318203Z E [ERROR] FAILED TO INITIALIZE BUILTIN PLUGINS. 2023-04-18T07:51:09.31820SZ E[ERROR] ABORTING 2023-04-18T07:51:09.318228Z  E [NOTE] BINLOG END 2023-04-1STE7:51:09.31S332Z E [NOTE] SHUTTING DOWN PLUGIN'CSY' 2023-04-18T07:51:09.321832Z E [NOTE]MYSQLD: SHUTDOWN COMPLETE -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1683365877209-4241f6d9-b435-4fdb-9faf-527fb7dd8f2c.png)
+
+:::danger
+ 这个问题出现在mysql 5.7之后的版本，主要的原因是mysql会在最新的checkpoint完成后都会在redo log写一个一字节的MLOG_CHECKPOINT 标记，用来标记在此之前的redo都已checkpoint完成。如果处于任何原因没有找到这个标记，那么整个redo日志文件都会被忽略。  
+
+ 进入：cd /var/lib/mysql  
+删除：rm -rf ib_logfile0 ib_logfile1   
+注意：docker化mysql可将挂载目录下的ib_logfile*文件删除或移走备份，docker挂载目录为: /data/eversec/data/mysql  
+
+ 最后重启MySQL  
+
+:::
+

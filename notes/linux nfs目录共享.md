@@ -1,0 +1,310 @@
+# linux nfs共享
+## 一、安装nfs服务
+安装脚本
+
+```shell
+#!/bin/bash
+#版本:NFS服务一键搭建脚本
+#       两部分，1.安装服务（判断是否安装服务) 2.配置文件/etc/exports
+#设置全局变量
+PATH=${PATH}:/root/
+LANG=zh_CN.UTF-8
+hong="\033[31m"
+huang="\033[33m"
+lv="\033[32m"
+se="\033[0m"
+
+
+#来个检查程序是否成功执行函数
+check_ok(){
+        if [ $? != 0 ]
+        then 
+            echo -e ""$hong"程序出现错误,请检查日志"$se""
+        exit 1
+        fi
+        }
+
+#安装服务函数
+myyum(){
+        s=`rpm -qa |grep "^$1"|wc -l`
+        if [ "$s" == 0 ]
+        then 
+            yum install -y  $1
+            check_ok
+        else
+            echo -e " serveice  $1  already occure yuo can use "$huang"systemctl start $1 "$se""
+        fi
+check_ok
+        }
+#配置环境
+#myyum iptables-services                                  #是否需要下载iptables服务
+#iptables-save > /etc/sysconfig/iptables_`date +%F`      #备份原有防火墙规则
+#iptables -F                                             #清空防火墙规则
+#check_ok
+#关闭selinux
+sed 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config -i
+s_num=`getenforce`
+if [ "$s_num" == Enforcing ];
+then 
+    setenforce 0
+fi
+check_ok
+
+#安装服务
+nfs_n=`rpm -qa |grep nfs-utils|wc -l`
+if [ $nfs_n -gt 0 ]
+then
+    echo "nfs-utils与rpcbind服务已存在，不需要安装,你可以通过编辑 /etc/exports来添加客户端" 
+    echo "/etc/exports配置格式:dir  ip(rw,sync,no_root_squash,anonuid="uid",anongid="gid",)"
+        systemctl restart rpcbind
+    systemctl restart nfs-utils
+    systemctl restart nfs
+        read -p "重新配置/etc/export输入1，退出输入任意：" select
+        if [ "$select" == 1 ]
+        then
+        cp /etc/exports  /etc/exports_`date +%F`
+        > /etc/exports
+        else
+        exit
+        fi
+    
+fi
+myyum nfs-utils 
+myyum rpcbind
+
+#配置文件
+while :
+do
+read -p "请输入想要共享的目录(默认为你的家目录):" dir
+read -p "是否加入新的客户端IP或网络,添加完毕直接按 ENTER:10.20.3.0/24:" ip
+if [ -z $dir ]
+then 
+    dir="~/"
+fi
+if [ -e $dir ];then
+        echo "Share Directory $dir exists"
+else
+        mkdir -p $dir
+        echo "Share Directory $dir Create success"
+fi
+check_ok
+if [ -z $ip ]
+then
+    break
+else
+    uid=`cat /etc/passwd|grep nfsnobody|awk -F ":" {'print $3'}`
+    gid=`cat /etc/passwd|grep nfsnobody|awk -F ":" {'print $4'}`
+    echo " $dir  $ip(rw,sync,no_root_squash,anonuid="$uid",anongid="$gid",)" >> /etc/exports 
+fi
+done
+check_ok
+        systemctl start rpcbind
+        systemctl start nfs-server
+        systemctl enable rpcbind
+        systemctl enable nfs-server
+local_ip=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"|head -n1`
+echo "NFS 服务安装完成，请在客户端安装nfs-utils 并使用showmount $local_ip(服务端ip)来查看可以挂载的目录。 "
+exit
+```
+
+
+
+## 二、配置文件说明
+
+
+> /etc/exports
+>
+
+
+
+```plain
+2. 配置内容              /data/      * (rw,sync,no_hide,no_all_squash)
+
+各部分说明 ：          共享目录     被允许的客户端IP（* 表示任意IP都可以）
+
+IP后括号里的设置表示对该共享文件的权限
+
+ro                      只读访问
+
+rw                      读写访问
+
+sync                    所有数据在请求时写入共享
+
+hide                    在NFS共享目录中不共享其子目录
+
+no_hide                 共享NFS目录的子目录
+
+all_squash              共享文件的UID和GID映射匿名用户anonymous，适合公用目录。
+
+no_all_squash           保留共享文件的UID和GID（默认）
+
+root_squash             root用户的所有请求映射成如anonymous用户一样的权限（默认）
+
+no_root_squas           root用户具有根目录的完全管理访问权限
+```
+
+
+
+## 三、客户端挂载
+
+
+```plain
+mount -t nfs 10.20.3.108:/data /appdata
+```
+
+如下：
+
+<!-- 这是一张图片，ocr 内容为：HROOTUEVERACOS DALAY#MKDTR/APPAA DATAL# MOUNT -T NFS 10.20.3.108://DATA /APPDATA ROOT@EVERDC03 DATA]# CD /APPDATA/ ROOT@EVERDC03 ROOT@EVERDC03 APPDATAL# 1S MYSQL LASTICSEARCH STORAGE  ZOOKEEPER META 17 LROOT@EVERDC03 APPDATA]# COTAL 0 18:06 ELASTICSEARCH  ROOT 30 MAY 17 18 ROOT RWXR-XR-X ROOT 20 MAY 17 18:17 DRWXR-XR-X 3 ROOT META ROOT 29 JUL 14 09:53 DRWXR-XR-X 4 MYSGL ROOT ROOT 20 MAY 17 1 7 18:17 ROOT STORAGE RWXR-XR-X 3 ROOT 33 APR 28 18:37 DRWXR-XR-X 4 ROOT ZOOKEEPER ROOT@EVERDC03 APPDATAL#DF-H  AVAIL USE% MOUNTED ON USED ILESYSTEM SIZE DEV/MAPPER/CENTOS-ROOT 3% 5.7G 245G 250G 7.8G 0%/DEV 7.8G DEVTMPFS 7.8G 7.8G 12K /DEV/SHM 1% EMPFS 7.8G 7.8G 1% 17M /RUN EMPFS O 7.8G 0% 7.8G MPFS /SYS/FS/CGROUP 181M 1014M DEV/SDA1 18% /BOOT 834M 220M 241G 1% /HOME DEV/MAPPER/CENTOS-HOME 241G 1.6G 0% /RUN/USER/O 1.6G EMPFS 10.20.3.108://DATA 10% 23G 250G 228G /APPDATA /APPDATA/ [ROOT@EVERDC03 APPDATA]# CD # LS CROOT@EVERDC03 APPDATAL# 1 STORAGE  ZOOKEEPER LASTICSEARCH MYSQL META -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812031845-dff605be-f71a-4780-ac37-e65e9df25e85.png)
+
+
+
+```shell
+#显示指定NFS服务器输出目录列表
+showmount  -e 10.20.3.108
+#exportfs
+exportfs -rv 重新输出共享目录(重新启动本机上的所有共享目录)
+#查看NFS的运行状态，对于调整NFS的运行有很大帮助。
+nfsstat
+```
+
+
+
+## 四、自动挂载
+写入/etc/fstab
+
+```shell
+echo "10.20.3.108:/data /appdata nfs defaults 0 0">>/etc/fstab
+[root@everdc03 ~]# cat  /etc/fstab |tail -n 1             
+10.20.3.108:/data /appdata nfs defaults 0 0
+```
+
+autofs自动挂载服务
+
+> 如果开机就挂载很多内容，但是又不经常使用会给服务器造成压力，所有选择动态挂载
+>
+
+
+
+autofs 特点
+
+
+
+autofs 和mount命令不同点在于 autofs 是一个守护进程，它会在后台检测用户是否要访问一个还未挂载的文件系统，autofs会自动检测该文件系统是否存在，如果存在则进行挂载，如果用户一段事件未使用则自动卸载
+
+
+
+缺点：如果是高并发的业务场景，大量的用户访问文件系统，autofs会进行大量挂载，高并发不适用autofs挂载
+
+
+
+安装autofs
+
+
+
+```plain
+yum install autofs -y
+```
+
+
+
+修改autofs配置文件
+
+
+
+```plain
+1.打开autofs配置文件，在misc 后面加入
+vi /etc/auto.master
+/misc   /etc/auto.misc
+/- /etc/auto.home
+
+[root@everdc03 ~]# cat  /etc/auto.home
+/appdata  -rw,soft,intr 10.20.3.108:/data
+```
+
+启动antofs服务
+
+
+
+```shell
+systemctl start autofs
+systemctl status autofs
+
+[root@everdc03 ~]# umount /appdata
+[root@everdc03 ~]# df -h
+Filesystem               Size  Used Avail Use% Mounted on
+/dev/mapper/centos-root  250G  5.7G  245G   3% /
+devtmpfs                 7.8G     0  7.8G   0% /dev
+tmpfs                    7.8G   12K  7.8G   1% /dev/shm
+tmpfs                    7.8G  9.0M  7.8G   1% /run
+tmpfs                    7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda1               1014M  181M  834M  18% /boot
+/dev/mapper/centos-home  241G  220M  241G   1% /home
+tmpfs                    1.6G     0  1.6G   0% /run/user/0
+# 只要auto 检测到用户对挂载点进行读写 cd ls 就会自动挂载
+[root@everdc03 ~]# ls /appdata
+1.txt  elasticsearch  meta  mysql  storage  zookeeper
+[root@everdc03 ~]# df -h
+Filesystem               Size  Used Avail Use% Mounted on
+/dev/mapper/centos-root  250G  5.7G  245G   3% /
+devtmpfs                 7.8G     0  7.8G   0% /dev
+tmpfs                    7.8G   12K  7.8G   1% /dev/shm
+tmpfs                    7.8G  9.0M  7.8G   1% /run
+tmpfs                    7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/sda1               1014M  181M  834M  18% /boot
+/dev/mapper/centos-home  241G  220M  241G   1% /home
+tmpfs                    1.6G     0  1.6G   0% /run/user/0
+10.20.3.108:/data        250G   23G  228G  10% /appdata
+```
+
+
+
+```plain
+nfs端口设置参考链接：https://blog.csdn.net/csdn_zan/article/details/121228122?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-0-121228122-blog-116639786.pc_relevant_aa&spm=1001.2101.3001.4242.1&utm_relevant_index=3
+```
+
+
+
+> windows 挂载nfs
+>
+
+<!-- 这是一张图片，ocr 内容为：112.51.25.139:2200  远程桌面连接 TEAMVIEWER EVERSEC 程序 此电脑 TODESK 控制面板>程序 搜索控制面板 控制面板主页 X                                                                                                     程序和功能 WINDOWS功能 卸载程序 系统和安全 启用或关闭WINDOWS功能 网络 向日英 运行为以前版本 网络和 INTERNET 若要启用一种功能,请选择其复选框,若要关闭一种功能,请清除其复选 默认程序 硬件和声音 框.填充的框表示仅启用该功能的一部分. 更改媒体或设备 程序 INTERNET EXPLORER 11 用户账户 田 INTERNET INFORMATION SERVICES 回收站 SECURECRT 外观和个性化 INTERNET INFORMATION  SERVICES  可承钱的 WEB 核心 快捷方式 时钟和区域 田 LEGACY COMPONENTS 轻松使用 MICROSOFT MESSAGE QUEUE (MSMQ)服务器 MICROSOFT PRINT TO PDF MICROSOFT XPS文档写入程序 控制面板 SECUREFXP... MULTIPOINT CONNECTOR 快捷方式 NFS服务 NFS 客户端 管理工具 SIMPLE TCPLP SERVICES (I.ECHO,DAYTIME ETC) EASYCONN... SMB 1.0/CIFS FILE SHARING SUPPORT -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812221167-db70051c-b42b-4a9a-bc3b-68d4c969be6c.png)
+
+```plain
+mount 10.20.3.108:/data w:
+```
+
+
+
+<!-- 这是一张图片，ocr 内容为：SEC-SYS KRBS KRB5L KRBBP 0- C:\USERS\EVERSEC>MOUNT 10.20.3.108://DATA Z: 网络错误-1202 有关详细信息,请键入"NET HELPMSG 1202" C:\USERS\EVERSEC>MOUNT 10.20.3.108://DATA W W:现已成功连接到10.20.3.108:/DATA 命令已成功完成. C:|USERS|EVERSEC> -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812092769-ad0f1aba-a40c-4eb4-b220-038ba6d9f5b9.png)
+
+
+
+挂载后查看挂载盘如下：
+
+<!-- 这是一张图片，ocr 内容为：查看 计算机 驱动器工具 此电脑 (文件夹(7) 患访问 图片 视频 3D对象 面载档片 音乐 文档 下载 电脑 桌面 对象 频片档 设备和驱动器(3) 新加卷(D:) 本地磁盘(C:) DVD驱动器 DVD 448GB可用,共499GB 4.98TB可用,共4.99 TB 载 网络位置(2) 乐 DATA (\10.20.3.108)(W:) SHARE(10.20.3.201)(Z:) 面 地磁盘(C:) 485GB可用,共490GB 227GB可用,共249GB 加卷(D:) ATA AL10 20 3 -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812102928-6feda166-7033-453f-847d-246523e72b91.png)
+
+
+
+NFS客户端使用mount命令挂载NFS服务之后，文件系统对Win10只读，对原先文件写入会提示没权限
+
+<!-- 这是一张图片，ocr 内容为：S:\USERS\EVERSEC>MOUNT 属性 本地 远程 1/10.20.3.108\DATA UID-2, GID-2 RSIZE1048576, WSIZE-1048576 MOUNTSOFT, TIMEOUT-0.8 RETRY-L, LOCKING YES FILEACCESS755, LANG-GB2312-80 CASESENSITIVENO SEC-SYS -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812124510-79f6171d-8fb1-48c5-b625-2e972d6a08d9.png)
+
+
+
+解决办法就是让Win7在挂载NFS的时候将UID和GID改成0即可：打开注册表：HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\ClientForNFS\CurrentVersion\Default，增加两项：AnonymousUid，AnonymousGid,如图：
+
+<!-- 这是一张图片，ocr 内容为：注册表编辑器 TEAM EVERSEC 文件(F)编辑(E)  查看(V)收藏夹(A)帮助(H) 计算机HKEY LOCAL MACHINE(SOFTWAREYMICROSOFT/CLIENTF ORNFS(CURRENTVERSION)DEFAULT 类型 名称 数据 MICROSOFT NETFRAMEWORK REG SZ (黑犬认) (数值未设置) ACCOUNTSCONTROL 文件 主页 0X00000000(0) ANONYMOUSGID REG DWORD ACTIVE SETUP 人 OX00000000(0) ANONYMOUSUID REG DWORD ACTIVESYNC REG DWORD CACHEBLOCKS 0X00000040(64) ADS DELETESYMLINKS REG DWORD 0X00000001(1) ADVANCED INF SE 快速访问 TAFIRSTCONTACT 0X00000003(3) REG DWORD ALG MAXNFSUSER REG DWORD 0X00000020(32) 桌面 ALLUSERLNSTALLAGE MOUNTTYPE REG DWORD 0X00000001(1) AMSI 下载 0X00CFFCFF(13630719) REG DWORD PROTOCOLS ANALOG 文档 RETRANSMISSIONS REG DWORD 0X00000001(1) APPSERVICEPROTO TIMEOUT REG DWORD 0X00000008(8) 图片 APPV USERESERVEDPO...... REG DWORD OX00000001(1) ASSISTANCE 此电脑 AUTHHOST BIDLNTERFACE 3D对象 BITLOCKERCSP 视频 CALLANDMESSAGIN CELLULAR 图片 CHKDSK 文档 CLIENTFORNFS 下载 CURRENTVERSIOR DEFAULT 音乐 折叠 R 桌面 项(K) 新建(N) USER 本地磁盘 CLIPBOARD 查找(F)... 字符串值(S) CLIPBOARD 新加卷(C 进制值(B) 删除(D) COM3 DWORD(32位)值(D) DATA A\1 重命名(R) COMMANC OWORD(64位)值(O) -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812148384-d11e9c0c-526e-41fb-9a61-1dbefbafae5a.png)
+
+
+
+重启windows10 再挂载
+
+<!-- 这是一张图片，ocr 内容为：C:\USERS\EVERSEC>MOUNT 10.20.3.108://DATA Y: Y:现已成功连接到 10.20.3.108:/DATA 命令已成功完成. C:\USERS\EVERSEC>MOUNT 属性 远程 本地 |\10.20.3.108\DATA UID-0, GID-O RSIZE-1048576, WSIZE-1048576 MOUNT-SOFT, TIMEOUT-0.8 RETRY-L, LOCKING-YES FILEACCESS-755, LANG GB2312-80 CASESENSITIVE NO SECSYS C:\USERSLEVERSEC> -->
+![](https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812170974-ea864bdc-dc20-4b29-a045-1f0d5ff0990a.png)
+

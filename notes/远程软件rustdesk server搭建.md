@@ -1,0 +1,152 @@
+# RustDesk架构概述
+<font style="color:rgb(25, 27, 31);">要理解自建服务器的重要性，首先需要对 RustDesk 的架构有一个全面的了解。RustDesk 采用了经典的客户端-服务器模型，其中涉及三个主要组件：RustDesk 客户端、RustDesk 服务器和 ID Server。</font>
+
+<!-- 这是一张图片，ocr 内容为：1. RENDEZVOUS PROTOCOL SERVERL:SIGNALING 1.RENDEZVOUS PROTOCOL 2. CONTROL DATA IF HOLE OUNCHING SUCCEEDS HOLE PUNCHING ERROR 3. VIDEO FRAME ' REMOTE COMPUTER CLIENT COMOUTER CONTROL DO 5.VIDEO FRAME 4. VIDEO FRAME SERVERA : RELAY SERVER NOTE : RENDEZVOUS PROTOCOL HELP TO FIND EACH OTHER -->
+![](https://cdn.nlark.com/yuque/0/2024/png/34997268/1723711468016-21b01c9a-f55c-4c6a-a3a8-c9d4572e33bd.png)
+
+# 工作原理
+RustDesk 会先用 TCP 21116 信令服务 NAT 打洞，如果打洞成功，直接 P2P 直连，RustDesk 不参与中继。
+
+RustDesk 如果没有打洞成功，则走 TCP 21117 中继服务，延迟、画质取决于中继服务器的带宽。
+
+
+
+| **<font style="color:rgb(79, 79, 79);">服务</font>** | **<font style="color:rgb(79, 79, 79);">端口</font>** | **<font style="color:rgb(79, 79, 79);">协议</font>** | **<font style="color:rgb(79, 79, 79);">用途</font>** | **<font style="color:rgb(79, 79, 79);">是否可选</font>** |
+| --- | --- | --- | --- | --- |
+| <font style="color:rgb(79, 79, 79);">hbbs</font> | <font style="color:rgb(79, 79, 79);">21114</font> | <font style="color:rgb(79, 79, 79);">TCP</font> | <font style="color:rgb(79, 79, 79);">用于 Web 控制台API，仅在专业版中可用</font> | <font style="color:rgb(79, 79, 79);">可选</font> |
+| <font style="color:rgb(79, 79, 79);">hbbs</font> | <font style="color:rgb(79, 79, 79);">21115</font> | <font style="color:rgb(79, 79, 79);">TCP</font> | <font style="color:rgb(79, 79, 79);">NAT类型测试</font> | <font style="color:rgb(79, 79, 79);">必选</font> |
+| <font style="color:rgb(79, 79, 79);">hbbs</font> | <font style="color:rgb(79, 79, 79);">21116</font> | <font style="color:rgb(79, 79, 79);">TCP/UDP</font> | <font style="color:rgb(79, 79, 79);">UDP用于ID注册和心跳服务，TCP用于TCP打洞和连接服务</font> | <font style="color:rgb(79, 79, 79);">必选</font> |
+| <font style="color:rgb(79, 79, 79);">hbbr</font> | <font style="color:rgb(79, 79, 79);">21117</font> | <font style="color:rgb(79, 79, 79);">TCP</font> | <font style="color:rgb(79, 79, 79);">用于Relay服务</font> | <font style="color:rgb(79, 79, 79);">必选</font> |
+| <font style="color:rgb(79, 79, 79);">hbbs</font> | <font style="color:rgb(79, 79, 79);">21118</font> | <font style="color:rgb(79, 79, 79);">TCP</font> | <font style="color:rgb(79, 79, 79);">用于支持Web客户端</font> | <font style="color:rgb(79, 79, 79);">可选</font> |
+| <font style="color:rgb(79, 79, 79);">hbbr</font> | <font style="color:rgb(79, 79, 79);">21119</font> | <font style="color:rgb(79, 79, 79);">TCP</font> | <font style="color:rgb(79, 79, 79);">用于支持Web客户端</font> | <font style="color:rgb(79, 79, 79);">可选</font> |
+
+
+1. **<font style="color:rgb(25, 27, 31);">客户端-服务器模型</font>**
+
+<font style="color:rgb(25, 27, 31);">在 RustDesk 的架构中，客户端是运行在用户设备 (如笔记本电脑、平板电脑或智能手机) 上的应用程序。它提供了一个图形界面，允许用户发起远程访问请求并与远程计算机进行交互。另一方面，服务器组件运行在要远程访问的目标计算机上。它负责监听来自客户端的连接请求，并在建立连接后向客户端发送屏幕更新和接收输入事件。</font>
+
+2. **<font style="color:rgb(25, 27, 31);">ID Server 的角色</font>**
+
+<font style="color:rgb(25, 27, 31);">ID Server 在 RustDesk 的生态系统中扮演着重要的角色。它的主要职责是促进客户端和服务器之间的初始连接建立。</font>**<font style="color:rgb(25, 27, 31);">当 RustDesk 服务器启动时，它会连接到 ID Server 并注册自己，提供如服务器 ID 和公网 IP 地址等信息</font>**<font style="color:rgb(25, 27, 31);">。类似地，当客户端想要连接到特定的 RustDesk 服务器时，它会向 ID Server 查询目标服务器的连接信息。</font>
+
+**<font style="color:rgb(25, 27, 31);">ID Server 维护了一个已注册的 RustDesk 服务器目录，并充当客户端和服务器之间的中介，帮助它们建立直接的点对点 (P2P) 连接</font>**<font style="color:rgb(25, 27, 31);">。一旦客户端从 ID Server 获得了服务器的连接信息，它就可以尝试直接连接到服务器，而无需进一步通过 ID Server 中继数据。</font>
+
+3. **<font style="color:rgb(25, 27, 31);">Relay Server 的角色</font>**
+
+<font style="color:rgb(25, 27, 31);">在某些网络环境下，RustDesk 客户端和服务器可能</font>**<font style="color:rgb(25, 27, 31);">无法直接建立 P2P 连接</font>**<font style="color:rgb(25, 27, 31);">，例如当它们位于 NAT (网络地址转换) 或防火墙后时。为了克服这一挑战，RustDesk 引入了 Relay Server。</font>
+
+**<font style="color:rgb(25, 27, 31);">如果客户端无法直接连接到服务器，它会向 ID Server 请求一个 Relay Server。然后，客户端和服务器都连接到指定的 Relay Server，并通过它来中继所有的网络通信</font>**<font style="color:rgb(25, 27, 31);">。Relay Server 在这种情况下充当客户端和服务器之间的桥梁，转发来自一方的数据包到另一方。</font>
+
+<font style="color:rgb(25, 27, 31);">值得注意的是，即使通过 Relay Server 进行通信，RustDesk 也会维护端到端加密，确保中继服务器无法访问明文数据。Relay Server 只是盲目地转发加密的数据包，而不能查看或修改其内容。</font>
+
+# <font style="color:rgb(25, 27, 31);">自建服务器</font>
+
+
+Web&API 部署教程：[https://github.com/kingmo888/rustdesk-api-server?tab=readme-ov-file#%E8%AF%B7%E4%BD%BF%E7%94%A8%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC123](https://github.com/kingmo888/rustdesk-api-server?tab=readme-ov-file#%E8%AF%B7%E4%BD%BF%E7%94%A8%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC123)
+
+RustDesk 服务端下载：[https://github.com/rustdesk/rustdesk-server/releases](https://github.com/rustdesk/rustdesk-server/releases)
+
+RustDesk 客户端下载：[https://github.com/rustdesk/rustdesk/releases/tag/1.2.7](about:blank)
+
+RustDesk 官方部署教程： [https://github.com/rustdesk/rustdesk/blob/master/docs/README-ZH.md ](about:blank) 
+
+
+
+下面使用docker部署：
+
+docker-compose文件如下：
+
+```shell
+version: "3.8"
+services:
+  rustdesk-api-server:
+    container_name: rustdesk-api-server
+    image: ghcr.io/kingmo888/rustdesk-api-server:latest
+    environment:
+      - CSRF_TRUSTED_ORIGINS=http://10.20.3.201:21114 #防跨域信任来源，可选
+      - ID_SERVER=10.20.3.201 #Web控制端使用的ID服务器
+     # - ALLOW_REGISTRATION=False #添加账号重启后禁止注册
+    volumes:
+      - /yourpath/db:/rustdesk-api-server/db #修改/yourpath/db为你宿主机数据库挂载目录
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    network_mode: bridge
+    ports:
+      - "21114:21114"
+    restart: unless-stopped
+    
+  hbbs:
+    container_name: hbbs
+    image: rustdesk/rustdesk-server:1.1.11-1
+    command: hbbs -r hbbr:21117 -k eversec123098
+    environment:
+      - "RELAY=hbbr:21117"
+      - "ENCRYPTED_ONLY=1"
+    ports:
+      - 21115:21115
+      - 21116:21116
+      - 21116:21116/udp
+      - 21118:21118
+    volumes:
+      - /data/rustdesk/root:/root
+    networks:
+      - rustdesk-net
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+
+  hbbr:
+    container_name: hbbr
+    image: rustdesk/rustdesk-server:1.1.11-1
+    command: hbbr -k eversec123098 #这边执行密钥可以不指定
+    ports:
+      - 21117:21117
+      - 21119:21119
+    volumes:
+      - /data/rustdesk/root:/root
+    networks:
+      - rustdesk-net
+    restart: unless-stopped
+
+networks:
+  rustdesk-net:
+    external: false
+```
+
+
+
+如果没有指定密钥登录docker容器后：`cat /data/rustdesk/root/id_ed25519.pub `
+
+
+
+# 连接配置验证
+<font style="color:#ff0000;">这边防火墙做了内网映射10.20.3.201的端口映射到112.51.25.139对应的端口</font>
+
+<!-- 这是一张图片，ocr 内容为：HTTP5//10:10:1-8443/WNM/FRAME/INDEXPHP3SESSIONID-20001708380EA85EC5EC5EDDR21287651BA5D$M NATSERVERVER 不安全 回 # H3C SECPATH F100-S- 网络 系统 策略 概览 对象 监控 G3 导航 NAT内部服务器 请输入内部服务 X删除 启用 C剧所 禁用 安全策略 清空统计数据 复制统计 新建 取能流计 安全策略 快迪配 协议类型/外网墙口 外网VRF 外网地址 内部服务器地址 内邮服, 反向地 内部服. 名称 提口 ACL 接口描述 映射备注 状态 GE1/0/2 TCP (6)/21116 公网 112.512 公网 禁止 10.20.3.201 启用 移动专线 21116 NUSTDESK滨口21116 策略冗余分析 GE1/0/2 启用 10.20.3.201 公网 TCP (6)/21117 21117 NUSTDESK洪口21117 112.51.2 移动专线.. 公网 禁止 策略命中分析 启用 10.20.3.201 TCP(6)/211118 GE1/0/2 公网 公网 RUSTDESK城口21118 112.51.2. 禁止 21118 移动专线.. 安全防护 TCP (6)/21119 移动专线. GE1/0/2 公网 10.20.3.201 112.51.2. 21119 公网 RUSTDESKD进口21119 -->
+![](https://cdn.nlark.com/yuque/0/2024/png/34997268/1724920635207-1d5361e2-da0f-432b-8b4f-b7f7610470a4.png)
+
+客户端配置：
+
+ RustDesk 客户端的 设置 -> ID/中继服务器 ，然后输入如下三个信息
+
+ID 服务器：rustdesk.example.com:21116，默认端口为21116时可以省略端口配置
+
+中级服务器：rustdesk.example.com:21117，默认端口为21117时可以省略端口配置
+
+Key：填写部署服务默认生成的 id_ed25519.pub 文件中的内容
+
+<!-- 这是一张图片，ocr 内容为：设置 主页 设置 ID/中继服务器 常规 112.51.25.139 ID 服务器: 安全 112.51.25.139:2117 中继服务器: 网络 豆 API服务器: 显示 吕账户 KEY: EV 关于 应用 代理 SOCKS5/HTTP(S)代理 -->
+![](https://cdn.nlark.com/yuque/0/2024/png/34997268/1723712603655-03c1ae04-6ecf-4184-8ee7-2080c8e08c25.png)
+
+手机端配置：
+
+<!-- 这是一张图片，ocr 内容为：18:40% 品 RUSTDESK 账户 登出(PHONE2) 设置 ID/中继服务器 ID服务器 华大 112.51.25.139 中继服务器 112.51.25.139 API服务器 KEY 硬件线 使能 确认 取消 录屏 自动录制来访会话 目录://STORAGE/EMULATED/0/ RUSTDESK/SCREENRECORD -->
+![](https://cdn.nlark.com/yuque/0/2024/png/34997268/1724236831923-0616928f-aadf-4128-8b5f-7e9703bd1863.png)
+
+远程连接测试
+
+<!-- 这是一张图片，ocr 内容为：1950532070@REDMI-2109111... 0401 X REC 任务编号 6461 恶意程序URL处置测试(日常) 任务模板 任务状态 完成 100% 日志数量 总数:100 成功:100 接收时间 2024-08-15 11:06:13 结束时间 2024-08-15 11:06:18 任务编号 62775 2024恶意程序三级协同全机房 任务模板 自测 任务状态 完成 100% 执行结果 执行成功 总数:158成功:158 日志数量 接收时间 2024-08-15 09:53:41 结束时间 2024-08-15 09:57:14 任务编号 60942 2024恶意程序三级协同全机房 任务模板 自测 任务状态 完成 100% 任务 我的 -->
+![](https://cdn.nlark.com/yuque/0/2024/png/34997268/1723713389883-c0c59793-d84f-43cd-bdff-f83a18a97b85.png)
+
+
+
