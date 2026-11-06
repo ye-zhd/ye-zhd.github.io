@@ -1,0 +1,998 @@
+# <font style="color:rgba(0, 0, 0, 0.75);">运行环境介绍</font>
+<font style="color:rgba(0, 0, 0, 0.75);">本次实施例子的运行环境共设四台服务器：</font>
+
+:::info
+<font style="color:rgba(0, 0, 0, 0.75);">10.20.3.110  GitLab 服务器，用于存储源代码</font>
+
+<font style="color:rgba(0, 0, 0, 0.75);">10.20.3.111   Jenkins 服务器，管理 CI /CD 流程，安装 Docker 用于生成本地镜像</font>
+
+<font style="color:rgba(0, 0, 0, 0.75);">10.20.3.112   Harbor 服务器，私有仓库用于保存镜像</font>
+
+<font style="color:rgba(0, 0, 0, 0.75);">10.20.3.113   Docker 用于实现远程部署</font>
+
+<font style="color:rgba(0, 0, 0, 0.75);">10.20.3.116 harbor uat测试环境</font>
+
+:::
+
+# CI/CD是什么
+CI/CD  是指持续集成（Continuous Integration）和持续部署（Continuous Deployment）或持续交付（Continuous Delivery）
+
+
+
+## 1.1 持续集成（Continuous Integration）
+持续集成是一种软件开发实践，团队成员频繁地将他们的工作集成到共享的代码仓库中。其主要特点包括：
+
++ 频繁提交代码：开发人员可以每天多次提交代码，确保代码库始终保持最新状态。
++ 自动化构建：每次提交后，自动触发构建过程，包括编译、测试、静态分析等。
++ 快速反馈：如果构建失败或测试不通过，能够快速地向开发人员提供反馈，以便及时修复问题。
+
+## 1.2  持续部署（Continuous Deployment）
+持续部署是在持续集成的基础上，将通过所有测试的代码自动部署到生产环境中。其特点如下：
+
++ 自动化流程：从代码提交到生产环境的部署完全自动化，无需人工干预。
++ 高频率部署：可以实现频繁的部署，使得新功能能够快速地提供给用户。
++ 风险控制：需要有强大的测试和监控体系来确保部署的稳定性和可靠性。
+
+
+
+## 1.3 持续交付（Continuous Delivery）
+持续交付与持续部署类似，但不一定自动部署到生产环境，而是随时可以部署。其重点在于确保软件随时处于可发布状态。
+
+CI/CD 的好处包括：
+
++ 提高开发效率：减少手动操作和等待时间，加快开发周期。
++ 尽早发现问题：通过频繁的集成和测试，问题能够在早期被发现和解决。
++ 降低风险：减少了大规模部署时可能出现的问题，提高了软件的质量和稳定性。
++ 增强团队协作：促进团队成员之间的沟通和协作，提高团队的整体效率。
+
+
+
+# git工具安装使用
+## 3.1 Git简介
+Git 是一个分布式版本控制系统，被广泛用于软件开发中，以管理代码的版本和变更。
+
+主要特点：
+
+分布式
+
++ 每个开发者都有完整的代码仓库副本，这使得开发者可以在离线状态下进行工作，并且在网络出现问题时也不会影响开发。
++ 即使中央服务器出现故障，开发者仍然可以在本地进行开发和查看项目历史。
+
+高效的分支管理
+
++ Git 中的分支创建和切换非常快速和简单。
++ 开发人员可以轻松地创建新的分支来进行新功能的开发或修复 bug，而不会影响主分支。
++ 合并分支也相对容易，可以使用多种合并策略来满足不同的需求。
+
+快速的版本回退
+
++ 如果发现某个版本存在问题，可以快速回退到之前的版本。
++ 可以查看每个版本的详细变更记录，方便了解代码的演进过程。
+
+强大的提交管理
+
++ 每个提交都有一个唯一的标识符，可以方便地引用和查看特定的提交。
++ 提交可以包含详细的提交信息，描述本次提交的更改内容。
+
+支持协作开发
+
++ 开发者可以将自己的更改推送到远程仓库，供其他开发者拉取和合并。
++ 可以处理多个开发者同时对同一文件进行修改的情况，通过合并冲突解决机制来确保代码的完整性。
+
+## <font style="color:rgb(79, 79, 79);">3.2 git 工作流程</font>
+<!-- 这是一个文本绘图，源码为：graph LR
+  WD[("工作目录<br>Working Directory")] -->|"git add (暂存)"| SA[("暂存区<br>Staging Area")]
+  SA -->|"git commit (提交)"| LR[("本地仓库<br>.git / Repository")]
+  LR -->|"git push (推送)"| RR[("远程仓库<br>Remote Repository")]
+  
+  RR -->|"git pull / fetch (拉取)"| WD
+  LR -->|"git checkout / switch (检出)"| WD
+  SA -->|"git reset / restore (取消暂存)"| WD -->
+![](https://cdn.nlark.com/yuque/__mermaid_v3/9b5f74c783f0c5772c06f6f4b0a65925.svg)
+
+
+
+Git 中的文件有三种核心状态，它们共同构成了项目的工作流：
+
++ **已修改**：表示文件已被修改，但修改的内容还未保存到 Git 数据库中。
++ **已暂存**：表示对一个已修改文件的当前版本做了标记，使之包含在下次提交的快照中。
++ **已提交**：表示数据已经安全地保存在本地数据库中。  
+
+
+这三种状态将我们的 Git 项目清晰地划分为三个阶段：
+
+1. **工作区**：你进行文件编辑的地方。
+2. **暂存区**：一个用于存放“已暂存”文件的临时区域。
+3. **Git 目录**：存储所有已提交数据的地方，是项目的版本库。
+
+## 3.3 docker部署gitlab
+环境说明:
+
+备篇路径一：本地学习环境"用户: 你将使用 [http://localhost](http://localhost) 或 http://<你的IP> 来访问 Gitlab。
+
+准备篇路径二：模拟企业环境"用户: 请确保 hosts 文件中 git.leops.local 指向你的服务器 IP。后续配置中可以将 [http://localhost](http://localhost) 替换为 [http://git.leops.local](http://git.leops.local)。
+
+### <font style="color:rgba(0, 0, 0, 0.75);">3.3.1 创建 Gitlab 数据目录</font>
+```shell
+# 切换到合适的安装目录，例如 /data
+cd /data
+# 创建用于持久化 Gitlab 配置、日志和数据的目录
+mkdir -p gitlab/config gitlab/logs gitlab/data gitlab/runner
+cd gitlab
+```
+
+### <font style="color:rgba(0, 0, 0, 0.75);">3.3.2 安装gitlab</font>
+<font style="color:rgba(0, 0, 0, 0.75);">创建 docker-compose.yml 文件</font>
+
+```yaml
+
+services:
+  gitlab:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/gitlab/gitlab-ce:19.1.1-ce.0'
+    container_name: gitlab
+    restart: always
+    hostname: 'git.leops.local'
+    environment:
+      TZ: 'Asia/Shanghai'
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://git.leops.local'
+        gitlab_rails['time_zone'] = 'Asia/Shanghai'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+    ports:
+      - '80:80'
+      - '443:443'
+      - '2222:22'
+    volumes:
+      - ./config:/etc/gitlab
+      - ./logs:/var/log/gitlab
+      - ./data:/var/opt/gitlab
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+    shm_size: '2048m'
+  gitlab-runner:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/gitlab/gitlab-runner:alpine-v19.1.1'
+    restart: always
+    container_name: gitlab-runner
+    environment:
+      CI_SERVER_URL: http://gitlab
+      TZ: 'Asia/Shanghai'
+    volumes:
+      - ./runner:/etc/gitlab-runner
+      - ./runner-cache:/cache
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /etc/localtime:/etc/localtime:ro
+
+```
+
+  
+
+
+配置解释:
+
++ **image**: 指定了 Gitlab CE 的 Docker 镜像。建议使用明确的版本号。
++ **hostname**: 容器的主机名，external_url 中的域名应能解析到运行 Docker 的主机。
++ **GITLAB_OMNIBUS_CONFIG**: 用于配置 Gitlab 内部服务的关键部分。
++ **external_url**: 极其重要！ 必须设置为用户访问 Gitlab 时使用的 URL (包含 http://)。Gitlab 会基于此 URL 生成仓库克隆地址等。路径一用户请使用 [http://localhost](http://localhost) 或 http://<你的IP>。路径二用户使用 [http://git.leops.local](http://git.leops.local)。
++ **ports**: 只映射了 HTTP 端口 80。如果需要通过 SSH 访问 Git 仓库，使用 ssh://git@:2222/… 的方式克隆。
++ **volumes**: 将 Gitlab 的配置、日志和数据持久化到宿主机的 ./config, ./logs, ./data 目录中，非常重要！
++ **shm_size**: Gitlab 可能需要较大的共享内存，如果遇到性能问题可以尝试增加此值（如 1gb, 2gb）。
+
+
+
+docker compose up 后拉起服务
+
+ 查看密码如下：
+
+```shell
+[root@localhost gitlab]# docker exec -it  gitlab  cat /etc/gitlab/initial_root_password
+# WARNING: This password is only valid if ALL of the following are true:
+#          • You set it manually via the GITLAB_ROOT_PASSWORD environment variable
+#            OR the gitlab_rails['initial_root_password'] setting in /etc/gitlab/gitlab.rb
+#          • You set it BEFORE the initial database setup (typically during first installation)
+#          • You have NOT changed the password since then (via web UI or command line)
+#
+#          If this password doesn't work, reset the admin password using:
+#          https://docs.gitlab.com/security/reset_user_password/#reset-the-root-password
+
+Password: 1zKDhFL5C8kmv9wTV8qAM8kfoSlA2jWBV8v9KpVqTOU=
+```
+
+:::info
+<font style="color:rgb(79, 79, 79);">[!WARNING]</font>
+
+<font style="color:rgb(79, 79, 79);">注意：出于安全原因，24 小时后，</font>`<font style="color:rgb(0, 0, 255);">/etc/gi</font><font style="color:rgb(0, 0, 0);">tlab/initial_root_password</font>`<font style="color:rgb(79, 79, 79);"> 会被第一次 </font>`**<font style="color:rgb(0, 0, 255);">gitlab-ctl reconfigure</font>**`<font style="color:rgb(79, 79, 79);"> 自动删除，因此若使用随机密码登录，建议安装成功初始登录成功之后，立即修改初始密码。</font>
+
+:::
+
+
+
+修改密码
+
+<!-- 这是一张图片，ocr 内容为：管理员 搜索或转到... 84 用户设置 / PASSWORD AND AUTHENTICATION / CHANGE PASSWORD 用户设置 用户资料 密码 8*账户 更改您的密码或恢复当前密码. 访问 PASSWORD AND 当前密码 AUTHENTICATION 个人访问令牌 您必须提供当前密码才能进行更改. SSH 密钥 新密码 GPG密钥 应用 活跃会话 密码确认 认证日志 集成账户 (电子邮件 保存密码 我忘记了密码 口 通知 一  偏好设置 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783840316405-a9306f46-38c8-4a3a-b891-7a28d16450de.png)
+
+
+
+修改windows的hosts文件后，页面打开如下：`http://git.leops.local:8081/users/sign_in`
+
+<!-- 这是一张图片，ocr 内容为：不安全 GIT.LEOPS.LOCAL:8081/USERS/SIGN IN GITLAB COMMUNITY EDITION USERNAME OR PRIMARY EMAIL PASSWORD FORGOT YOUR PASSWORD? REMEMBER ME SIGN IN PASSKEY DON'T HAVE AN ACCOUNT YET? REGISTER NOW -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783794066953-350d3069-739c-4ef6-98b2-8cb32d8e8196.png)
+
+性能优化版docker-compose.yaml
+
+创建目录：
+
+```shell
+mkdir -p /data/gitlab/{config,logs,data,runner,runner-cache,postgresql,redis,backups}
+chmod 755 /data/gitlab/{config,logs,data,runner,runner-cache,postgresql,redis,backups}
+```
+
+```yaml
+version: '3.8'
+
+services:
+  gitlab:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/gitlab/gitlab-ce:19.1.1-ce.0'
+    container_name: gitlab
+    restart: always
+    hostname: 'git.leops.local'
+    environment:
+      TZ: 'Asia/Shanghai'
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://git.leops.local'
+        gitlab_rails['time_zone'] = 'Asia/Shanghai'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        
+        # 使用外部 PostgreSQL
+        gitlab_rails['db_adapter'] = 'postgresql'
+        gitlab_rails['db_encoding'] = 'unicode'
+        gitlab_rails['db_host'] = 'db'
+        gitlab_rails['db_port'] = 5432
+        gitlab_rails['db_username'] = 'gitlab'
+        gitlab_rails['db_password'] = 'securepassword'
+        
+        # 使用外部 Redis
+        gitlab_rails['redis_host'] = 'redis'
+        gitlab_rails['redis_port'] = 6379
+        gitlab_rails['redis_password'] = 'securepassword'
+        
+        # 其他配置
+        postgresql['pool'] = 50
+        unicorn['worker_processes'] = 4
+        unicorn['worker_memory_limit'] = '2GB'
+        nginx['ssl_certificate'] = "/etc/gitlab/ssl/gitlab.crt"
+        nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/gitlab.key"
+        nginx['hsts_enabled'] = true
+        nginx['hsts_max_age'] = 31536000
+        gitlab_rails['artifacts_enabled'] = true
+        gitlab_rails['artifacts_path'] = '/var/opt/gitlab/gitlab-rails/shared/artifacts'
+        gitlab_rails['gitlab_signup_enabled'] = false
+        gitlab_rails['two_factor_authentication'] = true
+        gitlab_rails['rate_limit_requests_per_period'] = 100
+        gitlab_rails['rate_limit_period'] = 60
+        gitaly['prometheus_listen_addr'] = '0.0.0.0:9236'   # 补全引号
+        prometheus['enable'] = true
+        prometheus['monitor_kubernetes'] = false
+    ports:
+      - '8081:80'
+      - '443:443'
+      - '2222:22'
+    volumes:
+      - /data/gitlab/config:/etc/gitlab
+      - /data/gitlab/logs:/var/log/gitlab
+      - /data/gitlab/data:/var/opt/gitlab
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+    shm_size: '2048m'
+    depends_on:
+      - db
+      - redis
+    networks:
+      - gitlab-net
+
+  gitlab-runner:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/gitlab/gitlab-runner:alpine-v19.1.1'
+    restart: always
+    container_name: gitlab-runner
+    environment:
+      CI_SERVER_URL: http://gitlab
+      TZ: 'Asia/Shanghai'
+    volumes:
+      - /data/gitlab/runner:/etc/gitlab-runner
+      - /data/gitlab/runner-cache:/cache
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - gitlab-net
+    # 注意：启动后需要手动执行注册，或者通过 entrypoint 脚本自动注册
+
+  db:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgres:17.10'
+    container_name: gitlab-db
+    restart: always
+    environment:
+      POSTGRES_DB: gitlabhq_production
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: securepassword
+    volumes:
+      - /data/gitlab/postgresql:/var/lib/postgresql/data
+    networks:
+      - gitlab-net
+
+  redis:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/redis:8.8'
+    container_name: gitlab-redis
+    restart: always
+    command: redis-server --requirepass securepassword
+    volumes:
+      - /data/gitlab/redis:/data
+    networks:
+      - gitlab-net
+
+  backup:
+    image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/gitlab/gitlab-ce:19.1.1-ce.0'
+    container_name: gitlab-backup
+    entrypoint: |
+      bash -c '
+        echo "等待 GitLab 主服务启动..."
+        sleep 60
+        echo "开始执行备份..."
+        gitlab-rake gitlab:backup:create
+      '
+    volumes:
+      - /data/gitlab/config:/etc/gitlab
+      - /data/gitlab/backups:/var/opt/gitlab/backups
+    depends_on:
+      - gitlab
+    networks:
+      - gitlab-net
+    # 注意：此服务仅用于手动执行备份（docker-compose run backup），不会常驻运行
+
+networks:
+  gitlab-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+```
+
+
+
+
+
+语言设置：
+
+<!-- 这是一张图片，ocr 内容为：搜索或转到.. 管理员 0日 0G 0白 用户设置/偏好设置 用户设置 个性化 用户资料 帐户 必须为1到12之间的数字 访问 集成账户 日 电子邮件 通知 本地化 偏好设置 自定义语言和区域相关设置.进一步了解 评论模板 语言 使用配额 CHINESE,SIMPLIFIED  -简体中文 (88% 已翻译) 此功能是实验性的,翻译尚未完成. 帮助将 GITLAB 翻译成您的语言 每周的起始日 系统默认值(星期日) 时间偏好 配置日期和时间的显示方式.进一步了解. 使用相对时间 例如:30分钟前 帮助 收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783838676351-d80efd86-1bf7-444c-b0d9-536cd8b914d0.png)
+
+项目创建
+
+<!-- 这是一张图片，ocr 内容为：管理员 08 08.8 搜索或转到... 您的工作/项目/新建项目 你的工作 首页 创建新项目 中项目 群组 工作项 &.合并请求 待办事项列表 从模板创建 创建空白项目 里程碑 创建一个预先填充了必要文件的项目,以帮助您快速入 创建一个空白项目来存放您的文件,规划您的工作,并 代码片段 在代码等方面进行协作. 门. 动态 导入项目 小 从外部源(如 GITHUB,BITBUCKET或GITLAB 的其他实 D 例)迁移数据. 帮助 您也可以通过命令行来创建新项目.显示相关命令 收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783838646673-5c297778-8a67-4647-8f20-75fa833766f7.png)
+
+<!-- 这是一张图片，ocr 内容为：搜索或转到... 管理员 088 您的工作/项目/新建项目/创建空白项目 你的工作 创建一个空白项目来存放您的文件,规划您的工作,并在代码等方面进行协作. 首页 项目 项目名称 群组 . YEZHIDI 工作项 必须以小写或大写字母,数字,表情符号或下划线开头.也可以包含点,加号,破折号或空格. && 合并请求 项目标识串 项目URL 待办事项列表 里程碑 HTTP://10.20.3.110:8081/ ROOT YEZHIDI 代码片段 可见性级别? 动态 白私有 项目访问权限必须明确授予每个用户.如果此项目是一个群组的一部分,访问权限将授予该群组的成员. 中内部 除外部用户外,任何登录用户均可访问该项目. 办公开 无需任何身份验证即可访问该项目. 项目配置 使用自述文件初始化仓库 允许您立即克隆这个项目的仓库.如果您计划推送一个现有的仓库,请跳过这个步骤. 启用静态应用安全测试(SAST) 分析源代码查找已知安全漏洞,了解更多. 启用密钥检测 扫描代码中的密钥和凭证,以防止未经授权的访问.了解更多. 帮助 取消 新建项目 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783838564133-9dcaeebc-fee1-4dc5-bdbd-ee9b0fcc6e91.png)
+
+
+
+创建项目用户密钥
+
+```shell
+[root@localhost tmp]# ssh-keygen -t rsa
+Generating public/private rsa key pair.
+Enter file in which to save the key (/root/.ssh/id_rsa): 
+Enter passphrase for "/root/.ssh/id_rsa" (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/id_rsa
+Your public key has been saved in /root/.ssh/id_rsa.pub
+The key fingerprint is:
+SHA256:hUkk2H8XYcSV8xtoRpIkIh3ZWLMkalcDIxr3GsdcVu8 root@localhost.localdomain
+The key's randomart image is:
++---[RSA 3072]----+
+|   . *oBXXo==o.. |
+|    = O*O+=++.o  |
+|   . + Bo.. oo.o |
+|    . = ... o+ ..|
+|     .  S. .oE  o|
+|               . |
+|                 |
+|                 |
+|                 |
++----[SHA256]-----+
+[root@localhost tmp]# cat /root/.ssh/id_rsa.pub
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCouEQtxtqASJtLvUzNYTzsA/lPFHDHvJk1CKAYUVV1Tp9HbOXceDMXWE+3+k4f5dr5AoydDjh/FqitSWgXUdPAY++T1YalI1WZZGEMBPQmPRhK+KI7naRkfk9XpE4diTyOtEmZJfE0CG2qZaaV1f7Zx2pYAQrDPYepMo2VU2VzU+v93MZOSc3vQVhV7TNvUqyJlppedElRqLOQAG0DN485WpLopWYcEAE4hGsSXzGWNgsp0Beban/MEdxQY6Qb3Mi60Ih2M0So8BTn84UjEnCd5K3z8uaTlzfzVRwPhfMlKBCDHKASJ1/7ANywNVBtttIeW2OFQ5Q4LfiK5TP/49yuZkH0baQLZsAA5vmHfq53lrFgJn3eHL2iucdv1zbJUDDEgLPkKNi3qduDT+rus+3nwC41iTkruZyUC/RmvqMyUOyU7EiEGAobytuZAiR4CKhPNDOUmRzDyPnx+QQS8Qt2jocX7+QtPj7edr3xzrn+pJszFQqBthh/DMClV6r8vfs= root@localhost.localdomain
+```
+
+添加密钥
+
+<!-- 这是一张图片，ocr 内容为：ZA1 搜索或转到... 管理员 088 用户设置/SSH密钥 用户设置 SSH密钥 用户资料 账户 8 您的SSH密钥 访问 PASSWORD AND 添加SSH密钥 AUTHENTICATION 添加SSH密钥以安全访问GITLAB.了解更多. 个人访问令牌 SSH密钥 密钥 GPG密钥 SST-8025519 ACARC3NZ3C1ZOINTESAAAAIZZSBCTADOIYLX30892RRJ 应用 活跃会话 认证日志 集成账户 电子邮件 ED25519@OPENSSH.COM'开头. 通知 品 标题 偏好设置 评论模板 ROOT@LOCALHOST.LOCALDOMAIN 使用配额 密钥标题是公开可见的. 使用类型 验证& 签名 到期时间 帮助 2027-07-12 收起侧边栏 可选但堆芳,如里设置 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783839427298-0005e2bf-8c21-4a90-9ca4-1a5c51d76616.png)
+
+
+
+<font style="color:rgb(51, 51, 51);">下载项目测试：</font>
+
+<font style="color:rgb(51, 51, 51);">http下载：</font>
+
+```shell
+[root@localhost gitlab]# git clone http://git.leops.local:8081/root/yezhidi.git
+Cloning into 'yezhidi'...
+Username for 'http://git.leops.local:8081': root   
+Password for 'http://root@git.leops.local:8081': 
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Receiving objects: 100% (3/3), done.
+[root@localhost gitlab]# ls
+config  data  docker-compose.yml  logs  runner  runner-cache  yezhidi
+[root@localhost gitlab]# 
+
+
+```
+
+ssh下载：
+
+```shell
+# 由于docker部署映射的是2222端口需要修改下ssh端口
+[root@localhost gitlab]# git clone ssh://git@git.leops.local:2222/root/yezhidi.git
+Cloning into 'yezhidi'...
+The authenticity of host '[git.leops.local]:2222 ([10.20.3.110]:2222)' can't be established.
+ED25519 key fingerprint is: SHA256:oBuxgxBxDAYv4FzvNyphwML9zfUT8QFeXXayLA6VN8s
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '[git.leops.local]:2222' (ED25519) to the list of known hosts.
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Receiving objects: 100% (3/3), done.
+```
+
+创建一个新用户
+
+<!-- 这是一张图片，ocr 内容为：管理员 搜索或转到... 管理区  新用户 管理区域 品概览 新用户 仪表盘 项目 账户 用户 名称 群组 YE-EVERSEC 主题 用户名 GITALY 服务器 CI/CD YE-EVERSEC 业分析 电子邮件 奥监控 2437714234@QQ.COM 消息 系统钩子 88  应用程序 密码 举报滥用 部署密钥 将生成重置链接并发送给用户.用户将被迫在首次登录时设置密码. 标记 设置 访问类型 项目限制 帮助 创建用户 取消 收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783846504315-9829b4db-2e8c-4062-9d5c-d45c7f00a2ae.png)
+
+授权加入项目组
+
+<!-- 这是一张图片，ocr 内容为：搜索或转到... 管理员 KO 870 ADMINISTRATOR/YEZHIDI / 成员 X NEW SECURIT 邀请成员 X THE SECURITY MAN RABILITY MANAGEMENT,SECURITY DASHBOARDS,POLICY 您正在邀请成员加入  YEZHIDI 项目. CONFIGURATION,AND CE ACROSS YOUR ORGANIZATION. EMAIL ADDRESSES OR GITLAB USERNAMES LEARN MORE YE-EVERSEC X 项目成员 邀请成员 邀请群组 从一个项目导入 您可以邀请一个新成员或另一个群组加 ROLE 开发者 成员 WHAT ARE ROLES? GRANT TEMPORARY ACCESS 个三 账户 筛选成员 ACCESS EXPIRATION DATE 间 账户 活动 首 2027-02-28 AFTER THIS DATE,THE USER CANNOT ACCESS THE GROUP OR PROJECT.LEARN 8+7月12,2026 MORE ABOUT ACCESS. ADMINISTRATOR 你自己 自 Y 7月12,2026 村间 @ROOT 区7月12,2026 取消 邀请 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783847284656-9f99f777-d1cf-4c39-95d9-0aaf3b0d0475.png)
+
+### 3.3.3 git 提交使用
+window上git客户端下载：
+
+阿里镜像：[https://registry.npmmirror.com/binary.html?path=git-for-windows/](https://registry.npmmirror.com/binary.html?path=git-for-windows/)
+
+安装步骤默认或者参考网上。
+
+```shell
+ye@DESKTOP-2BH9A1O MINGW64 /e
+$ mkdir gitlab
+
+ye@DESKTOP-2BH9A1O MINGW64 /e
+$ cd gitlab
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab
+$ ls
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab
+$ ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_new -C "2437714134@qq.com"
+Generating public/private ed25519 key pair.
+Enter passphrase for "/c/Users/ye/.ssh/id_ed25519_new" (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /c/Users/ye/.ssh/id_ed25519_new
+Your public key has been saved in /c/Users/ye/.ssh/id_ed25519_new.pub
+The key fingerprint is:
+SHA256:LPF0EuWftl6z8EX+3UKf6CT0NRwwSU2nyCgT2GHbweg 2437714134@qq.com
+The key's randomart image is:
++--[ED25519 256]--+
+|       o==o .++..|
+|      ..o*.+ ooo.|
+|      ..* = o .. |
+|       =E= . .. .|
+|      . S  .+  +.|
+|       .  ....oo.|
+|           .o++.+|
+|           .o=.==|
+|            o.o.+|
++----[SHA256]-----+
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab
+$ cat ~/.ssh/id_ed25519_new.pub
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHmzZlvqz2MiroGzNn0SKaYW5cC3SAEgYwEcJL/GFvFN 2437714134@qq.com
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab
+$
+
+```
+
+<!-- 这是一张图片，ocr 内容为：$LS YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB IS SSH-KEYGEN -T ED25519 -F ~/.SSH/IDLED25519-NEW -C "24377141340QQ.COM"  GENERATING PUBLIC/PRIVATE ED25519 KEY PAIR. IENTER PASSPHRASE FOR "/C/USERS/YE/ SSH/IDLED25519-NEW" (EMPTY FOR NO PASSPHRASE) ENTER SAME PASSPHRASE AGAIN: YOUR IDENTIFICATION HAS BEEN SAVED IN /C/USERS/YE/ SSH/IDLED25519-NEW YOUR PUBLIC KEY HAS BEEN SAVED IN /C/USERS/YE/.SSH/ID-ED25519-NEW.PUB THE KEY FINGERPRINT IS: ISHA256:LPFOEUWFT16Z8EX+3UKF6CTONRWWSU2NYCGT2GHBWEG 24377141340QQ.COM THE KEY'S RANDOMART IMAGE IS: [ED25519 256]- 0三三0 0元 1000. 三E三 S ,00 [SHA256] YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB $ CAT ~/.SSH/ID_ED25519_NEW.PUB ESSH-ADZ5519 AAAACENZAC11ZDZINTESAAAAAZHMZZIVAZZHTROGZANOSKAYW5CC3SAFOYWECJL/GFVFN 2437714234899.COM -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783848191005-1294a2a4-58e5-4a71-b76a-415999f9a408.png)
+
+
+
+用新建账号登录 到项目页面系统会提示你添加ssh-key 。  
+<!-- 这是一张图片，ocr 内容为：ZSEARCH OR GO TO ADMINISTRATOR / YEZHIDI PROJECT YEZHIDI YEZHIDI FORK STAR PINNED WORK ITEMS + MAIN FIND FITE CODE YEZHIDI PROJECT INFORMATION 0 MERGE REQUESTS CLONE WITH SSH INITIAL COMMIT -O-1 COMMIT GIT@GIT.LEOPS.LOCAL:ROOT/YEZHIDI GIT 88 ADMINISTRATOR AUTHORED 1 HOUR AGO MANAGE G 1BRANCH PLAN YOUR ACCOUNT DOES NOT HAVE AN SSH KEY. TAGS ADD SSH KEY LAST COMMIT NAME LATE CODE BUILD CLONE WITH HTTP BREADME INITIAL COMMIT MREADME.MD AGO HTTP://GIT.LEOPS.LOCAL/ROOT/YEZHIDI.GIT SECURE AUTO DEVOPS ENABLED R DEPLOY README.MD OPEN WITH + ADD WIKI OPERATE WEB IDE MONITOR CREATED ON YEZHIDI HTTPS SSH VISUAL STUDIO CODE V ANALYZE JULY 12,2026 INTELLIJ IDEA SSH HTTPS GETTING STARTED DOWNLOAD SOURCE CODE TO MAKE IT EASY FOR YOU TO GET STARTED WITH GITLAB,HERE'S A LIST OF REC TAR ZIP TAR.GZ TAR.BZ2 ALREADY A PRO? JUST EDIT THIS README.MD AND MAKE IT YOUR OWN.WANT ADD YOUR FILES CREATE OR UPLOAD FILES ADD FILES USING THE COMMAND UNE OR PUSH AN EXISTING GIT REPOSITORY WITH THE FOLLOWING COMMAND; HELP -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783848336377-1a03e1c7-5ed6-45f2-8a0d-88772237e00b.png)
+
+复制前面生成的ssh密钥，添加后如下
+
+<!-- 这是一张图片，ocr 内容为：印 848 SEARCH OR GO TO... KO USER SETTINGS / SSH KEYS / 2437714134@QQQ.COM USER SETTINGS PROFILE SEARCH SETTINGS 8* ACCOUNT SSH KEY:2437714134@QQGG.COM ACCESS DELETE PASSWORD AND AUTHENTICATION KEY DETAILS PERSONAL ACCESS TOKENS USAGE TYPE EXPIRES CREATED LASTUSED SSH KEYS GPGKEYS JUL 12,2026 6:09PM AUTHENTICATION&SIGNING NEVER NEVER APPLICATIONS ACTIVE SESSIONS SSH KEY AUTHENTICATION LOG INTEGRATION ACCOUNTS SSH-EDZ5519 AAAC3UZACI1ZDIZDIINTESAAAAZZIVAZZHEROBZROBZUN8SKAYWSCC3SAEQYWECJL/GFVFN 243771A1340AG-CON EMAILS NOTIFICATIONS FINGERPRINTS PREFERENCES B1:75:8B:DE:4B:60:DC:B8:75:B3:12:A1:58:01:BF:09 MD5 COMMENT TEMPLATES U USAGE QUOTAS LPF0EULLFTL6Z8EX+3UKF6CTONRWWSU2NYCGT2GHBWEG SHA256 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783848381993-6b57066f-8ed3-4686-a794-a64c8de60bee.png)
+
+
+
+由于默认密钥问题如果使用ssh下载需要执行密钥：
+
+```shell
+$ GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_new -p 2222" git clone git@10.20.3.110:root/yezhidi.git
+Cloning into 'yezhidi'...
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Receiving objects: 100% (3/3), done.
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab
+
+```
+
+
+
+现在切换为http模式：
+
+`<font style="color:rgb(15, 17, 21);">git remote set-url origin http://10.20.3.110:8081/root/yezhidi.git</font>`
+
+执行命令后输入密码 就可以操作了
+
+<!-- 这是一张图片，ocr 内容为：HISTORY OF SHALLOW CLO CLC DEEPEN 二-GNO-HTINGLE-BRANCH CLONE ONLY ONE BRANCH, HEAD CLONE TAGS, AND MAKE LATER FE --[NO-]SHALLOW-SUBMODULES ANY CLONED SUBMODULES WILL BE -[NO-]S O-LSEPARATE-GIT-DIR <GITDIR> SEPARATE GIT DIR FROM WORKING <FORMAT> -[NO-]REF-FORMAT SPECIFY THE REFERENCE FORMAT -C, --[NO-]CONFIG <KEYEVALUE> SET CONFIG INSIDE THE NEW RER --[NO-]SERVER-OPTION <SERVER-SPECIFIC> OPTION TO TRANSMIT -4, - IPV4 USE IPV4 ADDRESSES ONLY -6,--IPV6 USE IPV6 ADDRESSES ONLY OBJECT FILTERING --[NO-]FILTER <ARGS> -[NO-]ALSO-FILTER-SUBMODULES APPLY PARTIAL CLONE FILTERS --[NO-]REMOTE-SUBMODULES SUBMODULES WILL U ANY CLONED INITIALIZE SPARSE-CHECKOUT IN I`<URI> I FOR DOWNLOADING BUNDLES URI A YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (MAIN) $ GIT PUSH -U ORIGIN MAIN FATAL: UNENCRYPTED HTTP IS NOT RECOMMENDED FOR GITLAB. HTTPS://AKA.MS/ACM/UNSAFEREMOTES ABOUT HOW TO PS OR SEE H GIT FOR WINDOWS PASSWORD FOR'HTTP:/LYE-EVERSEC@10.20.3.110:8081': 丰丰丰丰丰丰丰丰 CANCEL OK -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783850813892-fc8ebf9e-07f6-4c1f-9ab2-d6a9a31c97e9.png)
+
+
+
+环境确认
+
+```shell
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git branch
+* main
+```
+
+拉取最新代码
+
+说明：每次执行前拉取可以避免冲突
+
+```shell
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git pull origin main
+From http://10.20.3.110:8081/root/yezhidi
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+```
+
+<font style="color:rgb(15, 17, 21);">创建并切换到功能分支</font>
+
+```shell
+#命令相当于 git branch feature/disclaimer + git checkout feature/disclaimer 两步合并
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git checkout -b feature/disclaimer
+Switched to a new branch 'feature/disclaimer'
+```
+
+<font style="color:rgb(15, 17, 21);">在工作区修改代码</font>
+
+<font style="color:rgb(15, 17, 21);">新建一个 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">DISCLAIMER.md</font>`<font style="color:rgb(15, 17, 21);"> 文件，写入免责声明内容</font>
+
+```shell
+echo "# 免责声明" > DISCLAIMER.md
+echo "本代码仅供内部测试使用，严禁用于商业环境。" >> DISCLAIMER.md
+echo "使用本代码所产生的任何风险由使用者自行承担。" >> DISCLAIMER.md
+```
+
+<font style="color:rgb(15, 17, 21);">查看状态并提交到本地仓库：</font>
+
+**<font style="color:rgb(15, 17, 21);">1.查看当前状态</font>**
+
+`<font style="color:rgb(15, 17, 21);">git status</font>`
+
+<!-- 这是一张图片，ocr 内容为：(FEATURE/DISCLAIMER) YE@DESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI ECHO"#免责声明">DISCLAIMER.MD DISCLAIMER,MD ECHO"本代码仅供内部测试使用,严禁用于商业环境. DISCLAIMER. MD ECHO"使用本代码所产生的任何风险由使用者自行承担. (FEATURE/DISCLAIMER) /E/GITLAB/YEZHIDI YE@DESKTOP-2BH9A10 MINGW64 $LS DISCLAIMER.MD README.MD /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) YE@DESKTOP-2BH9A10 MINGW64 GIT STATUS ON BRANCH FEATURE/DISCLAIMER UNTRACKED FILES: <FILE>..." TO INCLUDE IN WHAT WILL BE COMMITTED) (USE "GIT ADD <F DISCLAIMER. MD NOTHING ADDED TO COMMIT BUT UNTRACKED FILES PRESENT (USE "GIT ADD" TO TRACK) /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) YE@DESKTOP-2BH9A10 MINGW64 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783852037693-01a880ee-76d6-42c6-b3c2-24ceef3d2208.png)
+
+<font style="color:rgb(15, 17, 21);">此时，会看到 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">DISCLAIMER.md</font>`<font style="color:rgb(15, 17, 21);"> 显示为 </font>**<font style="color:rgb(15, 17, 21);">红色</font>**<font style="color:rgb(15, 17, 21);">（Untracked files），表示 Git 尚未追踪它。</font>
+
+**<font style="color:rgb(15, 17, 21);">2.将文件添加到暂存区</font>**
+
+```shell
+git add DISCLAIMER.md
+#查看状态现在就有一个new file
+git status 
+```
+
+<!-- 这是一张图片，ocr 内容为：(FEATURE/DISCLAIMER) YEQDESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI $ GIT ADD DISCLAIMER.MD LF WILL BE REPLACED BY CRLF THE NEXT TIME GIT TE GIT TOUCH WARNING: IN THE WORKING COPY OF 'DISCLAIMER.MD', ES IT THIDI (FEATURE/DISCLAIMER) YE@DESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI $ GIT STATUS TON BRANCH FEATURE/DISCLAIMER MCHANGES TO BE COMMITTED: (USE "GIT RESTORE --STAGED <FILE>..." TO UNSTAGE) DISCLAIMER. MD NEW FILE: LYEQDESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783852845510-fa1a4768-f429-4452-841e-b5adcd93bdd9.png)
+
+**<font style="color:rgb(15, 17, 21);">3. 提交到本地仓库（Commit）</font>** 
+
+```shell
+$ git commit -m "docs: 新增免责声明文件"
+[feature/disclaimer a735c60] docs: 新增免责声明文件
+ 1 file changed, 3 insertions(+)
+ create mode 100644 DISCLAIMER.md
+```
+
+<font style="color:rgb(15, 17, 21);">修改已经永久记录在你本地的 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">feature/disclaimer</font>`<font style="color:rgb(15, 17, 21);"> 分支上</font>
+
+**<font style="color:rgb(15, 17, 21);">4.推送本地分支到远程仓库（Push</font>**<font style="color:rgb(15, 17, 21);">）</font>
+
+<font style="color:rgb(15, 17, 21);">第一次推送这个新分支，需要使用 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">-u</font>`<font style="color:rgb(15, 17, 21);"> 参数建立本地分支与远程分支的关联（上游 tracking）：</font>
+
+```shell
+git push -u origin feature/disclaimer
+```
+
+<!-- 这是一张图片，ocr 内容为：YE@DESKTOP-2BH9A10 MINGW64 (FEATURE/DISCLAIMER) IGW64 /E/GITLAB/YEZHIDI $ GIT PUSH -U ORIGIN FEATURE/DISCLAIMER ENUMERATING OBJECTS: 4, DONE. COUNTING OBJECTS: 100% (4/4), DONE. DELTA COMPRESSION USING UP TO 16 THREADS COMPRESSING OBJECTS: 100% (3/3), DONE. 'WRITING OBJECTS: 100% (3/3), 449 BYTES I 449.00 KIB/S, DONE. TOTAL 3 (DELTA O), REUSED O (DELTA O), PACK-REUSED O (FROM O) REMOTE: IREMOTE: TO CREATE A MERGE REQUEST FOR FEATURE/DISCLAIMER, VISIT: HTTP://GIT.LEOPS.10CAL/ROOT/YEZHIDI/-/MERGE_REQUESTS/NEWZMERGE-REQUESTS58SOURCE-BRANCHRANCHA5D REMOTE: FEATURE%2FDISCLAIMER REMOTE: TO HTTP://10.20.3.110:8081/ROOT/YEZHIDI.GIT [NEWBRANCH] FEATURE/DISCLAIMER FEATURE/DISCLAIMER ORIGIN/FEATURE/DISCLAIMER'. BRANCH 'FEATURE/DISCLAIMER SET UP TO TRACK TYEQDESKTOP-2BH9ALO MINGW64 /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783853122814-5bd8360b-a22f-4195-be65-f275f2d438cb.png)
+
+<font style="color:rgb(15, 17, 21);"></font>
+
+**<font style="color:rgb(15, 17, 21);">5.使用命令行合并</font>**
+
+```shell
+# 1. 切换回 main 分支
+git checkout main
+# 2. 拉取远程最新的 main（确保是最新的）
+git pull origin main
+# 3. 将 feature/disclaimer 分支合并到当前的 main
+git merge feature/disclaimer
+# 4. 推送合并后的 main 到远程
+git push origin main 
+```
+
+<!-- 这是一张图片，ocr 内容为：EQDESKTOP-2BH9A10 MINGW64 /E/GITTAB/YEZHIDI (FEATURE/DISCLAIMER) GIT CHECKOUT MAIN WTTCHED TO BRANCH MAIN TOUR BRANCH IS UP TO DATE WITH 'ORIGIN/MAIN'. LE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (MAIN) GIT PULL ORIGIN MAIN ROM HTTP://10.20.3.110:8081/ROOT/YEZHIDI BRANCH FETCH_HEAD MA7N LREADY UP TO DATE. LE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (MAIN) GIT MERGE FEATURE/DISCLAIMER PDATING C55B7E8...A735C60 AST-FORWARD DISCLAIMER.MD 1 FILE CHANGED, 3 INSERTIONS(+) CREATE MODE 100644 DISCLAIMER.MD LE@DESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI (MAIN) GIT PUSH ORIGIN MAIN AL O (DELTA O), REUSED ( (DELTA O), PACK-REUSED O (FROM 0) OTAL O: YOU ARE NOT ALLOWED TO PUSH CODE TO PROTECTED BE BRANCHES ON THIS PROJECT. EMOTE: GITLAB:Y HTTP://10.20.3.110:8081/ROOT/YEZHIDI.GIT CREMOTE REJECTED) MAIN -> MAIN (PRE-RECEIVE HOOK DECLINED) FAILED TO PUSH FS TO 'HTTP://10.20.3.110:8081/ROOT/YEZHIDI.GIT REFS RROR: SOME O MINGW64 /E/GITLAB/YEZHIDI (MAIN) TE@DESKTOP-2BH9A10 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783853373624-e320385b-0ca1-4996-af1c-97542b2bdc1d.png)
+
+
+
+合并提示权限问题，用ye-eversec账号提交合并请求
+
+<!-- 这是一张图片，ocr 内容为：@0870 GO  AL SEARCH OR GO TO... ADMINISTRATOR / YEZHIDI / MERGE REQUESTS / NEW MERGE REQUEST PROJECT TITLE (REQUIRED) YEZHIDI DOCS:新增免责声明文件 PINNED 0 MARK AS DRAFT WORK ITEMS DRAFTS CANNOT BE MERGED UNTIL MARKED READY. 0 MERGE REQUESTS DESCRIPTION 88 MANAGE BISS小P三三三国@ NORMAL TEXT PLAN CODE 合并到主分支 BUILD SECURE DEPLOY OPERATE SWITCH TO PLAIN TEXT EDITING 国 MONITOR ADD DESCRIPTION TEMPLATES TO HELP YOUR CONTRIBUTORS TO COMMUNICATE EFFECTIVELY! ANALYZE ASSIGNEE ASSIGN TO ME UNASSIGNED REVIEWER UNASSIGNED MILESTONE SELECT MILESTONE HELP LABELS COLLAPSE SIDEBAR -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783853728915-40caad75-0fbf-4771-a85c-2b01cf02bb28.png)
+
+用root账号批准合并分支
+
+<!-- 这是一张图片，ocr 内容为：BAL 管理员 870 搜索或转到... ADMINISTRATOR / YEZHIDI / 合并请求 /1 项目 YEZHIDI DOCS:新增免责声明文件 编辑 代码 已钉选 1. 开放中 YE-EVERSEC REQUESTED TO MERGE FEATURE/DISCLAIMER 42分钟后 INTO MAIN 工作项 习 提交1流水线0变更1 合并请求 概览 合并到主分支 编辑 0 ASSIGNEES 88  管理 无-分配给自己 岗计划 <代码 %D位审核者 编辑 合并请求 无-分配给自己 核准为可选 批准 仓库 编辑 标记 分支 准备合并! 无 提交 删除源分支 ()压缩提交消息 标签 里程碑 编辑 1提交和1个合并提交将被添加到MAIN. 无 仓库图 合并 比较修订版本 工作项 代码片段 无 动态 所有活动 构建 安全 工时统计 普通文本 无预计或已用时间 部署 运维 在此写评论或拖动您的文件到这里... 1位参与者 帮助 ￥收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783853779483-107ae3fe-831b-4cff-9210-67302bc8ffff.png)
+
+
+
+**<font style="color:rgb(15, 17, 21);">6.继续修改合并提交</font>**
+
+<font style="color:rgb(15, 17, 21);">本地 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">main</font>`<font style="color:rgb(15, 17, 21);"> 比远程 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">main</font>`<font style="color:rgb(15, 17, 21);"> 多了一个合并提交，需要强制同步回来</font>
+
+```shell
+$ git status
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git checkout main
+Already on 'main'
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git status
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git reset --hard origin/main
+HEAD is now at c55b7e8 Initial commit
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (main)
+
+```
+
+<!-- 这是一张图片，ocr 内容为：(MAIN) YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI $ GIT CHECKOUT MAIN ALREADY ON MAIN LYOUR BRANCH IS AHEAD OF 'ORIGIN/MAIN' BY 1 COM 1 COMMIT. (USE "GIT PUSH" TO PUBLISH YOUR LOCAL COMMITS) EIYE@DESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI (MAIN) GIT $ T STATUS BRANCH MAIN ON BY 1 COMMIT. 'ORIGIN/MAIN' IS AHEAD OF BRANCH YOUR PUBLISH YOUR LOCAL COMMITS) TO GIT PUSH CUSE NOTHING TO COMMIT, WORKING TREE CLEAN O MINGW64 /E/GITLAB/YEZHIDI (MAIN) YE@DESKTOP-2BH9A10 M GIT RESET --HARD ORIGIN/MAIN HEAD IS NOW AT C55B7E8 INITIAL COMMIT (MAIN) YE@DESKTOP-2BH9A10 MINGW64 /E/GITLAB/YEZHIDI $ GIT STATUS HAON BRANCH MAIN YOUR BRANCH IS UP TO DATE WITH ORIGIN/MAIN'. NOTHING TO COMMIT, WORKING TREE CLEAN YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (MAIN) $ AC (MAIN) YE@DESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI S -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783854522075-c512cbf4-5f7d-4147-b3e3-dfca19f9308a.png)
+
+**<font style="color:rgb(15, 17, 21);">解释</font>**<font style="color:rgb(15, 17, 21);">：这条命令会把你的本地 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">main</font>`<font style="color:rgb(15, 17, 21);"> 完全重置成远程 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">main</font>`<font style="color:rgb(15, 17, 21);"> 的样子（丢弃那个被拒绝的本地合并提交）。</font>**<font style="color:rgb(15, 17, 21);"> </font>**
+
+<font style="color:rgb(15, 17, 21);">创建远程 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">feature/disclaimer</font>`<font style="color:rgb(15, 17, 21);"> 分支（推送到远程）</font>
+
+```shell
+$ git checkout feature/disclaimer
+Switched to branch 'feature/disclaimer'
+Your branch is up to date with 'origin/feature/disclaimer'.
+
+ye@DESKTOP-2BH9A1O MINGW64 /e/gitlab/yezhidi (feature/disclaimer)
+$ git push -u origin feature/disclaimer
+Enumerating objects: 6, done.
+Counting objects: 100% (6/6), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 3.15 KiB | 460.00 KiB/s, done.
+Total 6 (delta 0), reused 3 (delta 0), pack-reused 0 (from 0)
+remote:
+remote: To create a merge request for feature/disclaimer, visit:
+remote:   http://git.leops.local/root/yezhidi/-/merge_requests/new?merge_request%5Bsource_branch%5D=feature%2Fdisclaimer
+remote:
+To http://10.20.3.110:8081/root/yezhidi.git
+ * [new branch]      feature/disclaimer -> feature/disclaimer
+branch 'feature/disclaimer' set up to track 'origin/feature/disclaimer'.
+```
+
+**<font style="color:rgb(15, 17, 21);">执行完这一步，远程 GitLab 上就正式有了 </font>**`**<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">feature/disclaimer</font>**`**<font style="color:rgb(15, 17, 21);"> 分支了</font>**<font style="color:rgb(15, 17, 21);">。</font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">-u</font>`<font style="color:rgb(15, 17, 21);"> 参数会把本地分支和远程分支绑定，以后在这个目录下直接敲 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">git push</font>`<font style="color:rgb(15, 17, 21);"> 就能自动推到这个远程分支。</font>
+
+<font style="color:rgb(15, 17, 21);">查看远程所有分支：</font>
+
+```shell
+$ git branch -r
+  origin/HEAD -> origin/main
+  origin/feature/disclaimer
+  origin/main
+```
+
+查看当前分支： `git branch` 带*号就是主分支
+
+<!-- 这是一张图片，ocr 内容为：LYEQDESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) SX GIT BRANCH FEATURE/DISCLAIMER MAIN -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783855044512-cdd3762e-1e25-4413-9acb-f6d654f8c0ea.png)
+
+切换分支：`<font style="color:rgb(15, 17, 21);">git checkout feature/disclaimer</font>`
+
+修改 `DISCLAIMER.md` 文件
+
+```shell
+echo "版本：v1.0.1" >> DISCLAIMER.md
+echo "更新日期：2026-07-12" >> DISCLAIMER.md
+```
+
+<font style="color:rgb(15, 17, 21);">查看当前修改状态：</font>`<font style="color:rgb(15, 17, 21);">git status</font>`
+
+<!-- 这是一张图片，ocr 内容为：GIT STATUS BRANCH FEATURE/DISCLAIMER ON B BRANCH IS UP TO DATE WITH 'ORIGIN/FEATURE/DISCLAIMER' YOUR CHANGES NOT STAGED FOR COMMIT: LE>::." TO UPDATE WHAT WILL BE COMMITTED) (USE "GIT ADD <FILE>. ." TO DISCARD CHANGES IN WORKING DIRECTORY) <FILE>..."T RESTORE (USE,"GIT MODIFIED: DISCLAIMER. MD NO CHANGES ADDED TO COMMIT (USE "GIT ADD" AND/OR "GIT COMMIT -A') -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783855187465-1baede13-7a87-441b-94c7-e9a0458b0109.png)
+
+<font style="color:rgb(15, 17, 21);">将文件修改添加到暂存区并提交</font>
+
+```shell
+# 1. 添加文件到暂存区
+git add DISCLAIMER.md
+# 2. 提交到本地仓库（-m 后面跟清晰的注释）
+git commit -m "chore: 更新免责声明，增加版本号和日期"
+```
+
+<!-- 这是一张图片，ocr 内容为：(TEATURE/AISCLAIMER) BH9A10 MINGW64 GIT STATUS BRANCH FEATURE/DISCLAIMER ON DATE WITH 'ORIGIN/FEATURE/DISCLAIMER'. BRANCH IS UP TO OUR S TO BE COMMITTED: CHANGES (USE TO UNSTAGE ) GIT --STAGED <FILE>..." RESTORE DISCLAIMER . MD MODIFIED: YEQDESKTOP-2BH9A1O MINGW64 /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) GIT COMMIT -M "CHOR "CHORE:更新免责声明,增加版本号和日期" [FEATURE/DISCLAIMER 092BE8E] CHORE: 更新免责声明,增加版本号和日期 1 FILE CHANGED, 2 INSERTIONS(+) YE@DESKTOP-2BH9ALO MINGW64 /E/GITLAB/YEZHIDI (FEATURE/DISCLAIMER) -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783855258576-8297be9e-960e-47f5-aa95-677c6f7c6ffa.png)
+
+<font style="color:rgb(15, 17, 21);">推送本地提交到远程 </font>`<font style="color:rgb(15, 17, 21);background-color:rgb(235, 238, 242);">feature/disclaimer</font>`<font style="color:rgb(15, 17, 21);"> 分支</font>
+
+```shell
+#因为之前已经用 -u 绑定了上下游关系，现在直接执行 git push 即可（不需要写全 origin feature/disclaimer
+git push
+```
+
+<!-- 这是一张图片，ocr 内容为：合并请求 ADMINISTRATOR / 12 YEZHIDI CHORE:更新免责声明,增加版本号和日期 编辑 代码 开放中 口 INTO MAIN 42分钟后 改中YE-EVERSEC REQUESTED TO MERGE FEATURE/DISCLAIMER 概览 提交 流水线 变更 编辑 1 ASSIGNEES YE-EVERSEC 由您核准 撤销核准 %D位审核者 编辑 YE-EVERSEC 准备合并! 标记 编辑 压缩提交? 编辑提交消息 删除源分支 无 源分支为 落后1个提交目标分支.REBASE源分支 1提交和 1个合并提交将被添加到MAIN. 里程碑 编辑 合并 无 工作项 动态 十三 所有活动 无 YE-EVERSEC REQUESTED REVIEW FROM @YE-EVERSEC 42分钟后 工时统计 无预计或已用时间 YE-EVERSEC ASSIGNED TO @YE-EVERSEC 42分钟后 ADMINISTRATOR APPROVED THIS MERGE REQUEST 43分钟后 1位参与者 普通文本BI号小P注三国@四+ -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783855414108-7153eb46-e7a2-4663-acca-d4e2263f1c95.png)
+
+可以看到已经合并的历史请求如下：
+
+<!-- 这是一张图片，ocr 内容为：ADMINISTRATOR/YEZHIDI /合并请求 批量编辑 开放中 新建合并请求 已合并2 已关闭 全部2 创建日期 搜索或筛选结果... CHORE:更新免责声明,增加版本号和日期 已核准 已合并 !2由YE-EVERSEC创建于42分钟后 更新于42分钟后 DOCS:新增免责声明文件 已核准 已合并 !1 由YE-EVERSEC创建于14分钟后 更新于16分钟后 显示20项 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783855456501-1bf679fd-f7a5-40a3-bf91-1e31519445fa.png)
+
+## 3.4 gitlab runner使用
+<font style="color:rgb(77, 77, 77);">创建 Runner 容器后，需要将其注册到 GitLab 才能使用</font>
+
+### <font style="color:rgb(79, 79, 79);">3.4.1 获取注册 Token</font><font style="color:rgb(77, 77, 77);"></font>
+<font style="color:rgb(77, 77, 77);">1.进入项目 → Settings → CI/CD → Runners</font>
+
+<!-- 这是一张图片，ocr 内容为：搜索或转到... 09280司 管理员 管理区 RUNNER 管理区域 品概览 RUNNER 创建实例RUNNER CI/CD RUNNER 全部0 项目 实例 群组 作业 仙分析 三个 创建日期 搜索或筛选结果... 婴监控 5 消息 系统钩子 品名 应用程序 O 举报滥用 部署密钥 标记 设置 入门 RUNNER ) RUNNERS是运行CI/CD作业的代理.从创建一个新的RUNNER 开始. 还在使用注册令牌? 帮助 收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783858743784-13667806-37e2-4d41-9d17-d0870c7f85f2.png)
+
+<!-- 这是一张图片，ocr 内容为：管理员 0 8 0 搜索或转到... 0% 管理区/RUNNER/创建 管理区域 标签 品概览 CI/CD YEZHIDI-RUNNER RUNNER 使用逗号分隔多个标签.例如,MACOS,SHARED. 作业 运行未打标签的作业 业分析 除了标记的任务外,使用 RUNNER 来执行没有标签的任务. 监控 消息 系统钩子 配置(可选) 应用程序 RUNNER 描述 举报滥用 YE部署RUNNER 部署密钥 标记 已暂停 停止RUNNER接收新的作业. 设置 受保护 只为受保护的分支使用流水线上的RUNNER. 最大作业超时 RUNNER在结束前可以运行的最大时间.如果一个项目的任务超时时间较短,则使用实例RUNNER的任务超时时间. 请以秒为单位输入作业超时时间.必须至少600秒. 帮助 创建RUNNER -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783858893799-15ec1738-d308-4145-ae58-24c6f48d321a.png)
+
+<!-- 这是一张图片，ocr 内容为：管理员 08 048 搜索或转到... 管理区/ RUNNER/ #36(92WB2XWE)/注册 管理区域 品 概览 RUNNER 已创建. CI/CD RUNNER 注册"YEZHIDI-RUNNER"RUNNER 作业 山分析 平台 婴监控 操作系统 消息 系统钩子 WINDOWS MACOS LINUX 品 应用程序 举报滥用 0 容器 部署密钥 标记 KUBERNETES DOCKER C 设置 必须先安装RUNNER 才能注册 RUNNER.如何安装RUNNER? 步骤1 复制并粘贴以下命令到您的命令行中,注册RUNNER. GITLAB-RUNNER REGISTER --URL HTTP://GIT.LEOPS.LOCAL 帮助 -TOKEN GLR SKEN GLRT-92WB2XWECKMBKP6J9V981G86MQP80JEKDTOXCW.01.12ERF2GAG -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783859576478-dbcdfafa-1118-4394-b8ed-eb6ce82da8e3.png)
+
+
+
+### <font style="color:rgb(79, 79, 79);">3.4.1 注册 Runner</font>
+```shell
+docker exec -it gitlab-runner gitlab-runner register  --url http://10.20.3.110:8081  --token glrt-92wB2xwEckMbKp6J9v981G86MQp0OjEKdToxCw.01.120rf2gag
+```
+
+
+
+按照提示输入以下信息：
+
+
+
++ GitLab 实例 URL：[http://10.20.3.110:8081,](http://10.20.3.110:8081) 可以直接回车
++ Registration token：从 GitLab 复制的 token, 可以直接回车
++ Runner 描述：自定义名称，如 my-docker-runner
++ Runner tags：标签，用于指定哪些任务使用此 Runner，如 docker
++ Executor：选择 docker
++ 默认 Docker 镜像：如 alpine:latest
+
+
+
+```shell
+[root@localhost gitlab]# docker exec -it gitlab-runner gitlab-runner register  --url http://10.20.3.110:8081  --token glrt-92wB2xwEckMbKp6J9v981G86MQp0OjEKdToxCw.01.120rf2gag
+Runtime platform                                    arch=amd64 os=linux pid=67 revision=24b9b726 version=19.1.1
+Running in system-mode.                            
+                                                   
+Enter the GitLab instance URL (for example, https://gitlab.com/):
+[http://10.20.3.110:8081]: 
+Verifying runner... is valid                        correlation_id=01KXB7WA8T4NXZ4073SHCA5ER4 runner=92wB2xwEc runner_name=3858ab4c51b9
+Enter a name for the runner. This is stored only in the local config.toml file:
+[3858ab4c51b9]: my-docker-runner
+Enter an executor: parallels, virtualbox, custom, instance, docker-windows, docker-autoscaler, docker+machine, kubernetes, ssh, shell, docker:
+[docker,build]: docker
+Enter the default Docker image (for example, ruby:3.3):
+alpine:latest
+Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
+ 
+Configuration (with the authentication token) was saved in "/etc/gitlab-runner/config.toml" 
+[root@localhost gitlab]# 
+```
+
+<font style="color:rgb(77, 77, 77);">册完成后，在 GitLab 的 Runner 页面就能看到新注册的 Runner </font>
+
+<!-- 这是一张图片，ocr 内容为：00840 G0 管理员 搜索或转到... 管理区 RUNNER 管理区域 郢概览 RUNNER 创建实例RUNNER 曙 CI/CD RUNNER 实例1群组0 项目 全部 作业 业分析 A 搜索或筛选结果... 创建日期 画 监控 消息 离线 在线 STALE 系统钩子 00 0& 应用程序 举报滥用 O 运行器配置 所有者? 状态 部署密钥 标记 管理员 在线 空闲 #36(92WB2XWE)86实例 口 设置 版本19.1.1.YEZHIDI-RUNNER GOO 最后联系:41分钟后 目172.19.01 台由ADMINISTRATOR 创建于33分钟后 YEZHIDI-RUNNER -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783860129998-95a607e8-a873-4316-a66d-4f2065a9205f.png)
+
+
+
+### <font style="color:rgb(79, 79, 79);">3.4.2 设置 Runner 的 Docker 镜像优先从本地拉取</font>
+<font style="color:rgb(77, 77, 77);">为了提高 CI/CD 任务的执行效率，可以配置 Runner 优先使用本地已有的 Docker 镜像，避免每次都从远程仓库拉取。</font>
+
+**<font style="color:rgb(77, 77, 77);">步骤 1：编辑 Runner 配置文件</font>**
+
+<font style="color:rgb(77, 77, 77);">找到宿主机上挂载的 Runner 配置文件</font>`<font style="color:rgb(77, 77, 77);">/data/gitlab/runne/config.toml</font>`
+
+**<font style="color:rgb(77, 77, 77);">步骤 2：添加镜像拉取策略</font>**
+
+<font style="color:rgb(77, 77, 77);">在 </font>`<font style="color:rgb(199, 37, 78);background-color:rgb(249, 242, 244);">[runners.docker]</font>`<font style="color:rgb(77, 77, 77);"> 配置段中添加以下内容：</font>
+
+```shell
+concurrent = 1
+check_interval = 0
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "my-docker-runner"
+  url = "http://10.20.3.110:8081"
+  clone_url = "http://10.20.3.110:8081" # 添加此行避免git clone 拉取代码失败
+  id = 36
+  token = "glrt-92wB2xwEckMbKp6J9v981G86MQp0OjEKdToxCw.01.120rf2gag"
+  token_obtained_at = 2026-07-12T13:22:16Z
+  token_expires_at = 0001-01-01T00:00:00Z
+  executor = "docker"
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+    [runners.cache.s3]
+      AssumeRoleMaxConcurrency = 0
+    [runners.cache.gcs]
+    [runners.cache.azure]
+  [runners.docker]
+    tls_verify = false
+    image = "alpine:latest"
+    privileged = false
+    pull_policy = "if-not-present"  # 添加此行
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock"]   # 新增这一行
+    volume_keep = false
+    shm_size = 0
+    network_mtu = 0
+```
+
+### 3.4.3 runner流水线使用
+流水线
+
+<!-- 这是一张图片，ocr 内容为：管理员 搜索或转到... 048 ADMINISTRATOR / YEZHIDI / 流水线 项目 YEZHIDI 全部 已完成 清除RUNNER缓存 标签 分支 查看分析 新流水线 已钉选 Q 显示流水线ID 筛选流水线 88管理 岗计划 小代码 构建 流水线 作业 流水线编辑器 流水线计划 当前无流水线. 产物 安全 部署 运维 监控 业分析 @ 设置 帮助 收起侧边栏 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783871310501-761f1746-b7a3-4c4b-86d7-6b6b7bc675e8.png)
+
+点击项目->配置CI/CD
+
+<!-- 这是一张图片，ocr 内容为：管理员 搜索或转到... 088 ADMINISTRATOR YEZHIDI 项目 YEZHIDI 0 YEZHIDI 宫派生 星标 已钉选 查找文件 G  MAIN 代码 项目信息 YEZHIDI 管理 岗计划 3次提交 MERGE BRANCH FEATURE/DISCLAIMER' INTO'MAIN'(`*) 历史 2C4C6F3A ADMININISTRATOR 创建于3小时前 代码 G 2个分支 构建 0个标签 最后更新 最后提交 名称 安全 日6KB项目存储 部署 4小时前 DISCLAIMERMD CHORE:更新免贡声明,增加版本号和日期 运维 自述文件 8小时前 README.MD INITIAL COMMIT 监控 启用AUTODEVOPS 分析 添加LICENSE README.MD 设置 添加更新日志 +添加贡献信息 YEZHIDI +添加KUBERNETES 集群 GETTING STARTED 配置CI/CD 添加 WIKI TO MAKE IT EASY FOR YOU TO GET STARTED WITH GITLAB, HERE'S A LIST OF RECOMMENDED NEXT STEPS. 配置集成 ALREADY A PRO? JUST EDIT THIS README.MD AND AND MAKE IT YOUR OWN. WANT TO MAKE IT  USE THE ATE BOTOM 创建于 ADD YOUR FILES 帮助 2026年07月12日 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783871661138-a470f12e-ca3a-4253-837f-5b2cf36f812e.png)
+
+点击编辑CI/CD
+
+<!-- 这是一张图片，ocr 内容为：流水线编辑器 ADMINISTRATOR/YEZHIDI GET UP AND RUNNING WITH GITLAB CI/CD STREAMLINE YOUR DEVELOPMENT PROCESS EFFORTLESSLY WITH ROBUST CL/CD PIPELINES. USE A CI/CD COMPONENT WRITE YOUR OWN WRITE YOUR OWN CI/CD CONFIGURATION BY HAND, STARTING START WITH A PRE-BUILT AND CUSTOMIZABLE CI/CD FROM SCRATCH. COMPONENT. START BUILDING BROWSE CATALOG -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783871691564-653316f6-863a-4d50-be05-6fa87a4d33d8.png)
+
+会弹出默认编辑内容，这里直接使用
+
+<!-- 这是一张图片，ocr 内容为：项目 ADMINISTRATOR /YEZHIDI/流水线编辑器 您可以使用文件树查看您的流水线配置 X YEZHIDI 文件.了解更多 已钉选 检查流水线状态 管理 流水线语法是正确的.了解更多 A > 岗计划 验证 完整配置 编辑 可视化 代码 构建 画CI/CD目录 帮助 编辑器无障碍指南 流水线 25 STAGE:BUILD 作业 SCRIPT: 流水线编辑器 NG THE CODE... ECHO 'COMPILING T COMPILE COMPLETE ." ECHO 流水线计划 产物 # THIS JOB RUNS IN THE TEST STAGE. UNIT-TEST-JOB: # IT ONLY STARTS WHEN THE JOB IN THE BUILD STAGE COMPLETES SUCCESSFULLY. STAGE:TEST 安全 SCRIPT: A A ECHO "RUNNING UNIT TESTS... THIS WILL TAKE ABOUT 60 SECONDS." 部署 SLEEP 60 运维 ECHO "CODE COVERAGE IS 90%" > 监控 # THIS JOB ALSO RUNS IN THE TEST STAGE. LINT-TEST-JOB: > 分析 SAME TIME AS UNIT-TEST-JOB (IN PARALLEL). IT CAN RUN AT THE SAME T STAGE:TEST SCRIPT: 904484464 设置 - ECHO "LINTING CODE... THIS WILL TAKE ABOUT 10 SECONDS." SLEEP 10 CHO "NO LINT ISSUES FOUND." ECHO DEPLOYJOB: # THIS JOB RUNS IN THE DEPLOY STAGE. 您的更改已成功提交. X Y # IT ONLU RUNS WHEN KBOTH* JOBS IN THE TEST STAGE COMPLETE SUCCESSFULLY. STAGE:DEPLOY ENVIRONMENT:PRODUCTION -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783871740294-736d3f62-ed93-407a-bf63-4f9588af3fb8.png)
+
+点击流水线->点击运行
+
+<!-- 这是一张图片，ocr 内容为：流水线 ADMINISTRATOR 项目 YEZHIDI YEZHIDI 已完成分支标签 新流水线 全部 清除RUNNER缓存 查看分析 今 已钉选 显示流水线ID 筛选流水线 88管理 计划 流水线 操作 阶段 状态 创建人 代码 # 已通过 构建 更新.GITLAB-CI.YML文件 00:01:20 流水线 P MAIN O EC3C4CC 43分钟后 作业 分支 最新 流水线编辑器 流水线计划 产物 安全 日部署 运维 监控 仙分析 设置 -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783872736254-1ca02632-a52c-4843-9dda-d9058e149ae3.png)
+
+通过如下
+
+<!-- 这是一张图片，ocr 内容为：流水线 L# ADMINISTRATOR YEZHIDI #1 删除 由 ADMINISTRATOR 于25分钟后创建,于42分钟后完成 已通过 口更新.GITLAB-CI.YML文件 针对提交EC3C4CCC 在MAIN 分支 GO 6个作业 最新 91分20秒,已排队574秒 流水线 作业 测试 BUILD DEPLOY TEST LINT-TEST-JOB BUILD-JOB DEPLOY-JOB C UNIT-TEST-JOB -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783872785029-f97f1954-6d46-46d0-9cdf-d9ef4b9a9bd4.png)
+
+<!-- 这是一张图片，ocr 内容为：管理员 搜索或转到... ADMINISTRATOR / YEZHIDI / 作业 / #4 A 搜索可见日志输出 以UTC格式记录时间戳 USING OFFECTIVE PULL POLICY OF DIF-NOT-PRESENT[ FOR CONTAINER ALPINE:LATES 16:55:08 8 16:55:08 T"PULL POLICY USING LOCALLY FOUND IMAGE VERSION DUE TO "IF JE TO  IF-NOT-PRESENT" L USING DOCKER IMAGE SHA256:05455ABB3816A9CF007520C4BE61BBDD71A34C9296613DF0184083E7E7AEDDDOO76D FON 16:55:08 Y 时长:2秒 ALPING:LATEST WITH DIGEST SWR.CN-NORTH-4,MYHUAWEICLOUD.COM/ADN-KBS/DOCKER-IO/SELECTAB/ALPINEAS 已完成:41分钟后 HA256:6457D53FB065D6F250E150469BC42D5B6C65941D57532C072D929DD0628977D0 Y 队列中:2秒 PREPARING ENVIRONMENT 16:55:08 10 00:00 16:55:08 11 USING EFFECTIVE PULL POLICY OF [IF-NOT-PRESENT] FOR CON OR CONTAINER SHA256:8B61837FB534C9CC2E37DBF6 超时:10M(来自RUNNER) BA1A7A98A704C3E3C0CEF6E62CD38864EB8251E RUNNER: #36 (92WB2XWE)YEZHIDI- RUNNING ON RUNNER-92WB2XWEC-PROJECT-2-CONCURRENT-0 VIA 3858AB4C5169.. 12  16:55:08 RUNNER GETTING SOURCE FROM GIT REPOSITORY 13  16:55:08 00:01 来源:推送 GITALY CORRELATION ID: 01KXBM21MRNHQWE7DR1A9GDN2W 14  16:55:08 FETCHING CHANGES WITH GIT DEPTH SET TO 20... 15  16:55:08 提交 EC3C4CCC  REINITIALIZED EXISTING GIT REPOSITORY IN /BUILDS/ROOT/YEZHIDI/.GIT/ 16 16:55:08 更新.GITLAB-CI.YML文件 CREATED FRESH REPOSITORY. 17  16:08 CHECKING OUT EC3C4CC AS DETACHED HEAD (REF IS MAIN)... 18 16:55:08 对于MAIN口的流水线#1 已通过 SKIPPING GIT SUBMODULES SETUP 19 16:55:09 EXECUTING "STEP_SCRIPT" STAGE OF THE JOB SCRIPT 00:00 20 16:55:09 DEPLOY 16:55:09 21 USING DEFAULT IMAGE 相关的作业 16:55:09 USING EFFECTIVE PULL POLICY OF [IF-NOT-PRESENT] FOR CONTAINER ALPINE:LATEST 22 Y 23 16:55:09 USING DOCKER IMAGE SHA256:05455AO88881EA9CF0E752BC4BE61BBD71A34C02960296013DF01840E3E70EDD007BD 0D007BD FOR DEPLOYJOB Y ALPINE:LATEST WITH DIGEST SWR-IO/SELECTA-MYHUAMEICLOUD.COM/AAN-KBS/DOCKER.IO/SELECTAB/ALPINEDS HA256:6457D53FB065D6F250E150469BC42D5B6C65941D57532C072D929DD0628977D0 24  16:55:09 $ ECHO "DEPLOYING APPLICATION. 25  16:55:09 DEPLOYING APPLICATION... 26  16:55:09 $ ECHO "APPLICATION SUCCESSFULLY DEPLOYED." 16:55:09 APPLICATION SUCCESSFULLY DEPLOYED. 27 16:55:09 28 CLEANING UP PROJECT DIRECTORY AND FILE BASED VARIABLES 00:00 29 16:55:09 JOB SUCCEEDED -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783872804383-002a348d-7073-45b6-bdd0-95e69cb4f200.png)
+
+修改`.gitlab-ci.yml`
+
+```shell
+#workflow:
+#  rules:
+#    - if: '$CI_PIPELINE_SOURCE == "web"'  # 只有当通过网页点击"运行流水线"时才触发
+#      when: always
+#    - when: never                         # 其他所有情况（如代码推送）都不触发
+
+stages:
+  - build
+  - test
+  - deploy
+
+build-job:
+  stage: build
+  image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/docker:latest'
+  script:
+    - echo "Compiling the code..."
+    - echo "Compile complete."
+    - echo "Building Docker image..."
+    - echo "FROM alpine:latest" > Dockerfile
+    - docker build -t yezhidi-test .
+    - docker images | grep yezhidi-test
+    - echo "Docker image yezhidi-test built successfully."
+
+unit-test-job:
+  stage: test
+  script:
+    - echo "Running unit tests... This will take about 60 seconds."
+    - sleep 10
+    - echo "Code coverage is 90%"
+
+lint-test-job:
+  stage: test
+  script:
+    - echo "Linting code... This will take about 10 seconds."
+    - sleep 10
+    - echo "No lint issues found."
+
+deploy-job:
+  stage: deploy
+  image: 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/docker:latest'
+  environment: production
+  script:
+    - echo "Deploying application..."
+    - docker rm -f yzd-test || true          # 如果容器已存在，先强制删除（忽略错误）
+    - docker run -d --name yzd-test yezhidi-test   # 后台运行容器，命名为 yzd-test
+    - echo "Application successfully deployed."
+```
+
+构建完镜像如下：
+
+<!-- 这是一张图片，ocr 内容为：SUR,CN-NORTH-3,MYHUANEICLAB-RUND.COM/BUI-KSS/ BOCKEF.FO/AIETAB/9ITLAB-RUNNERIALPING-7. 3858AB4C51B9 HOURS UP 3 M AGO INUTES GITLAB-RUNNER [ROOT@LOCALHOST RUNNER]# DOCKER IMAGES TAG SIZE CREATED REPOSITORY IMAGE ID X86_64-V19.1.1 2 WEEKS AGO 96.6MB 8B61837FB534 IREGISTRY.GITLAB.COM/GITLAB-ORG/GITLAB-RUNNER/GITLAB-RUNNER-HELPER 44213FEE200E 218MB ALPINE-V19.1.1 ISWR.CN-NORTH-4.MYHUAWEICTOUD.COM/DDN-K8S/DOCKER.IO/GITTAB/GITLAB-RUNNER WEEKS AGO 19.1.1-CE.0 6586624305F0 3.46GB ISWR.CN-NORTH-4.MYHUAWEICLOUD.COM/DDN-K8S/DOCKER.10/GITLAB/G1TLAB-CE WEEKS AGO 18.11.1 4691DBFEEFFF 4.03GB ISWR.CN-NORTH-4.MYHUAWEICTOUD.COM/DDN-K8S/DOCKER.IO/SAMEERSBN/GITLAB MONTHS AGO C14831209054 V4.10.16-CE 653MB MONTHS AGO JUMPSERVER/KOKO 4 M 377MB 8DB5F76D9AA9 JUMPSERVER/LION V4.10.16-CE MONTHS AGO 4 MONTHS AGO 562MB V4.10.16-CE 64D87CB3A180 JUMPSERVER/CHEN 1.04GB D2F28911697F V4.10.16-CE 4 MONTHS AGO JUMPSERVER/CORE 4 MONTHS AGO 272MB BBEE906FEA24 V4.10.16-CE JUMPSERVER/WEB 435MB 16.10-BOOKWORM 8 MONTHS AGO 8BA5CA87C6A4 POSTGRES B4E53BB4637C 117MB 7.4.6-BOOKWORM 9 MONTHS AGO REDIS 17.11.0 14 MONTHS AGO 1C6E60B38B1B 4.46GB SWR.CN-NORTH-4.MYHUAWEICLOUD.COM/DDN-K8S/DOCKER.IO/SAMEERSBN/GITLAB 49FC2ACB217F 17 MONTHS AGO LATEST 378MB SWR.CN-NORTH-4.MYHUAWEICLOUD.COM/DDN-K8S/DOCKER.10/1IBRARY/DOCKER 8.0.37 8279F68EE77D 567MB 2 YEARS AGO MYSQ1 /DDN-K8S/DOCKER.IO/1IBRARY/MYSG SWR.CN-NORTH-4.MYHUAWEICLOUD. 8279F68EE77D 567MB 8.0.37 Z YEARS AGO 7.38MB CA20687373AF YEZHIDITEST 2 YEARS AGO LATEST 7.38MB LATEST 05155A088810 ALPINE YEARG AGO 7.38MB SWR.CN-NORTH-4.MYHUAWEICLOUD.COM/DDN-K8S/DOCKER.IO/SELECTDB/ALPINE 05455A08881E LATEST YEARS AGO [ROOT@LOCALHOST RUNNER]# -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783875737025-3dbb5fd5-8a7a-4da3-a3d1-cce9bef1e6fe.png)
+
+<!-- 这是一张图片，ocr 内容为：YEZHIDI DOCKER GREP CROOT@LOCALHOST "/BIN/SH" ABOUT A MINUTE AGO 29BCEBA8BAB0 YEZHIDI-TEST YZD-TEST EXITED (0) ABOUT A MINUTE E AGO -->
+![](https://cdn.nlark.com/yuque/0/2026/png/34997268/1783876609070-884f1f8f-e53d-47eb-a1a6-d8c045a05327.png)
+

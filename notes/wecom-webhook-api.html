@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>企业微信群机器人接口速查与 Python 封装 | 文档中心</title>
+<!-- GENERATED-BY: build_notes.py -->
+<link rel="shortcut icon" href="/img/favicon.png">
+<link rel="stylesheet" href="/notes/doc.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-inner">
+<a class="brand" href="/">Lucky Ye</a><span class="sep">/</span>
+<a class="brand" href="/notes/">文档中心</a>
+<span style="flex:1"></span>
+<a class="nav-link" href="/">博客首页</a>
+<a class="nav-link" href="/archives/">归档</a>
+</div></header>
+<main class="wrap">
+<article class="article">
+<div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / 开发工具</div>
+<h1 class="title">企业微信群机器人接口速查与 Python 封装</h1>
+<p class="sub">开发工具 · 约 8280 字 · <a href="/notes/企业微信群机器人接口速查.md">查看 Markdown 原文</a></p>
+<div class="md-body"><h1>企业微信群机器人接口速查</h1>
+<blockquote>
+<p>官方文档：<a href="https://developer.work.weixin.qq.com/document/path/91770">消息推送（群机器人）配置说明</a>
+配套代码：<code>wecom_robot.py</code>（零第三方依赖，仅标准库）</p>
+</blockquote>
+<p>群机器人本质是一个带 <code>key</code> 的 webhook，向它发 <code>HTTP POST</code> 即可往群里推消息。共支持 <strong>8 种消息类型</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>msgtype</th>
+<th>说明</th>
+<th>需要素材上传</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td>文本，支持 @成员 / @所有人</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>markdown</code></td>
+<td>Markdown（有限语法 + 3 种字体颜色）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>markdown_v2</code></td>
+<td>Markdown V2（表格、代码块、图片，不支持颜色与 @）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>image</code></td>
+<td>图片（base64 + md5）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>news</code></td>
+<td>图文链接，1~8 条</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>file</code></td>
+<td>文件</td>
+<td>是，<code>type=file</code></td>
+</tr>
+<tr>
+<td><code>voice</code></td>
+<td>语音（AMR）</td>
+<td>是，<code>type=voice</code></td>
+</tr>
+<tr>
+<td><code>template_card</code></td>
+<td>模板卡片：<code>text_notice</code> / <code>news_notice</code></td>
+<td>卡片内附件可选</td>
+</tr>
+</tbody>
+</table>
+<h2>一、安全：webhook 必须藏起来</h2>
+<p>官方原文提醒：「一定要保护好消息推送的 webhook 地址，避免泄漏！不要分享到 github、博客等可被公开查阅的地方」。key 一旦泄露，任何人都能往群里发消息。</p>
+<p><strong>约定：</strong></p>
+<ul>
+<li>代码、文档、截图、Git 提交中一律只出现占位符 <code>${WECOM_WEBHOOK}</code>、<code>YOUR_KEY_HERE</code>。</li>
+<li>真实地址只放在<strong>环境变量</strong>或被 <code>.gitignore</code> 排除的 <code>.env</code> 里。</li>
+<li>日志与异常输出统一打码：<code>.../send?key=***</code>。</li>
+<li>若曾经明文提交过，请到群机器人设置里<strong>重置 webhook</strong>（换 key），并清理历史提交。</li>
+</ul>
+<p>配置方式（任选其一）：</p>
+<pre><code class="language-bash"># Git Bash / Linux
+export WECOM_WEBHOOK='https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE'
+export WECOM_WEBHOOK_KEY='YOUR_KEY_HERE'   # 或只填 key
+</code></pre>
+<pre><code class="language-powershell"># PowerShell
+$env:WECOM_WEBHOOK = &quot;https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE&quot;
+</code></pre>
+<pre><code class="language-ini"># .env（复制自 .env.example，已被 .gitignore 排除）
+WECOM_WEBHOOK=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY_HERE
+</code></pre>
+<p>读取优先级：显式传参 &gt; <code>WECOM_WEBHOOK</code> &gt; <code>.env</code> &gt; <code>WECOM_WEBHOOK_KEY</code>（自动拼地址）。</p>
+<h2>二、快速开始</h2>
+<pre><code class="language-python">from wecom_robot import WeComRobot
+
+bot = WeComRobot()                      # 从环境变量 / .env 读取
+bot.send_text(&quot;福州今日天气：26℃，多云&quot;)
+bot.send_markdown(&quot;**告警** &lt;font color=\&quot;warning\&quot;&gt;CPU 92%&lt;/font&gt;&quot;)
+bot.send_file(&quot;./report.xlsx&quot;)         # 内部自动完成 upload_media
+</code></pre>
+<p>只看请求体、不联网（适合自测和写文档）：</p>
+<pre><code class="language-bash">python wecom_robot.py demo              # 打印 8 类消息体
+python wecom_robot.py check             # 检查配置，输出脱敏地址
+python wecom_robot.py text &quot;hi&quot; --dry-run
+</code></pre>
+<p>原生 curl 形态：</p>
+<pre><code class="language-bash">curl -X POST &quot;$WECOM_WEBHOOK&quot; \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;msgtype&quot;:&quot;text&quot;,&quot;text&quot;:{&quot;content&quot;:&quot;hello world&quot;}}'
+</code></pre>
+<h2>三、各类型接口实例</h2>
+<h3>3.1 text 文本</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;text&quot;,
+  &quot;text&quot;: {
+    &quot;content&quot;: &quot;广州今日天气：29度，大部分多云&quot;,
+    &quot;mentioned_list&quot;: [&quot;wangqing&quot;, &quot;@all&quot;],
+    &quot;mentioned_mobile_list&quot;: [&quot;13800001111&quot;, &quot;@all&quot;]
+  }
+}
+</code></pre>
+<ul>
+<li><code>content</code> ≤ <strong>2048 字节</strong>，UTF-8；支持 <code>&lt;@userid&gt;</code> 扩展语法。</li>
+<li><code>mentioned_list</code> 放 userid，<code>mentioned_mobile_list</code> 放手机号，<code>@all</code> 提醒所有人。</li>
+</ul>
+<pre><code class="language-python">bot.send_text(&quot;服务器告警，请处理&quot;, mentioned_list=[&quot;@all&quot;])
+</code></pre>
+<h3>3.2 markdown</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;markdown&quot;,
+  &quot;markdown&quot;: {
+    &quot;content&quot;: &quot;实时新增用户反馈&lt;font color=\&quot;warning\&quot;&gt;132例&lt;/font&gt;\n&gt;类型:&lt;font color=\&quot;comment\&quot;&gt;用户反馈&lt;/font&gt;&quot;
+  }
+}
+</code></pre>
+<ul>
+<li><code>content</code> ≤ <strong>4096 字节</strong>。</li>
+<li>支持 1~6 级标题、<code>**加粗**</code>、链接、行内代码、<code>&gt;</code> 引用、<code>&lt;@userid&gt;</code>。</li>
+<li>字体颜色只有 3 种：<code>info</code>（绿）、<code>comment</code>（灰）、<code>warning</code>（橙红）。</li>
+</ul>
+<pre><code class="language-python">bot.send_markdown(&quot;## 日报\n**新增告警** &lt;font color=\&quot;warning\&quot;&gt;3&lt;/font&gt; 条&quot;)
+</code></pre>
+<h3>3.3 markdown_v2</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;markdown_v2&quot;,
+  &quot;markdown_v2&quot;: {
+    &quot;content&quot;: &quot;# 周报\n| 项目 | 数值 |\n| --- | --- |\n| 告警 | 3 |\n\n```\n独立代码块\n```&quot;
+  }
+}
+</code></pre>
+<ul>
+<li><code>content</code> ≤ <strong>4096 字节</strong>；支持斜体、多级列表/引用、链接、图片、分割线、代码块、<strong>表格</strong>。</li>
+<li><strong>不支持</strong>字体颜色和 @成员；客户端 4.1.36（安卓 4.1.38）以下显示为纯文本。</li>
+</ul>
+<pre><code class="language-python">bot.send_markdown_v2(&quot;# 周报\n| 项目 | 数值 |\n| :--- | ---: |\n| 告警 | 3 |&quot;)
+</code></pre>
+<h3>3.4 image 图片</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;image&quot;,
+  &quot;image&quot;: {
+    &quot;base64&quot;: &quot;DATA&quot;,
+    &quot;md5&quot;: &quot;MD5&quot;
+  }
+}
+</code></pre>
+<ul>
+<li>图片（base64 前）≤ <strong>2M</strong>，仅 JPG / PNG；<code>md5</code> 是原始文件内容的 MD5。</li>
+</ul>
+<pre><code class="language-python">bot.send_image(&quot;./chart.png&quot;)   # 自动读取文件、算 md5、转 base64
+</code></pre>
+<h3>3.5 news 图文</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;news&quot;,
+  &quot;news&quot;: {
+    &quot;articles&quot;: [
+      {
+        &quot;title&quot;: &quot;中秋节礼品领取&quot;,
+        &quot;description&quot;: &quot;今年中秋节公司有豪礼相送&quot;,
+        &quot;url&quot;: &quot;https://www.qq.com&quot;,
+        &quot;picurl&quot;: &quot;https://example.com/pic.png&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<ul>
+<li><code>articles</code> <strong>1~8 条</strong>；<code>title</code> ≤128 字节、<code>description</code> ≤512 字节，超出自动截断。</li>
+<li>图片建议大图 1068×455、小图 150×150。</li>
+</ul>
+<pre><code class="language-python">bot.send_news([{&quot;title&quot;: &quot;运维知识库&quot;, &quot;url&quot;: &quot;https://example.com/kb&quot;,
+                &quot;description&quot;: &quot;常用命令速查&quot;}])
+</code></pre>
+<h3>3.6 file 文件</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;file&quot;,
+  &quot;file&quot;: { &quot;media_id&quot;: &quot;3a8asd892asd8asd&quot; }
+}
+</code></pre>
+<p><code>media_id</code> 必须先通过 <code>upload_media</code> 获取（见第四节）。</p>
+<pre><code class="language-python">from wecom_robot import file_payload
+
+bot.send_file(&quot;./拨测结果.xlsx&quot;)                 # 上传 + 发送一步完成
+media_id = bot.upload_media(&quot;./拨测结果.xlsx&quot;, &quot;file&quot;)
+bot.send_raw(file_payload(media_id))            # 或复用 media_id 手动发送
+</code></pre>
+<h3>3.7 voice 语音</h3>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;voice&quot;,
+  &quot;voice&quot;: { &quot;media_id&quot;: &quot;MEDIA_ID&quot; }
+}
+</code></pre>
+<ul>
+<li>仅 <strong>AMR</strong> 格式，≤ <strong>2M</strong>，播放时长 ≤ <strong>60s</strong>。</li>
+</ul>
+<pre><code class="language-python">bot.send_voice(&quot;./notice.amr&quot;)
+</code></pre>
+<h3>3.8 template_card 模板卡片</h3>
+<p>两种 <code>card_type</code>，字段很多，日常用构造函数生成最省事。</p>
+<p><strong>文本通知 <code>text_notice</code></strong>（适合告警 / 数据播报）：</p>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;template_card&quot;,
+  &quot;template_card&quot;: {
+    &quot;card_type&quot;: &quot;text_notice&quot;,
+    &quot;source&quot;: { &quot;desc&quot;: &quot;运维告警&quot;, &quot;desc_color&quot;: 0 },
+    &quot;main_title&quot;: { &quot;title&quot;: &quot;磁盘使用率告警&quot;, &quot;desc&quot;: &quot;生产环境 /data 分区&quot; },
+    &quot;emphasis_content&quot;: { &quot;title&quot;: &quot;92%&quot;, &quot;desc&quot;: &quot;当前使用率&quot; },
+    &quot;sub_title_text&quot;: &quot;请及时清理日志或扩容&quot;,
+    &quot;horizontal_content_list&quot;: [
+      { &quot;keyname&quot;: &quot;主机&quot;, &quot;value&quot;: &quot;node-01&quot; },
+      { &quot;keyname&quot;: &quot;详情&quot;, &quot;value&quot;: &quot;点击查看&quot;, &quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/dashboard&quot; }
+    ],
+    &quot;jump_list&quot;: [
+      { &quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/dashboard&quot;, &quot;title&quot;: &quot;监控面板&quot; }
+    ],
+    &quot;card_action&quot;: { &quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/dashboard&quot; }
+  }
+}
+</code></pre>
+<p><strong>图文展示 <code>news_notice</code></strong>（适合周报 / 公告）：</p>
+<pre><code class="language-json">{
+  &quot;msgtype&quot;: &quot;template_card&quot;,
+  &quot;template_card&quot;: {
+    &quot;card_type&quot;: &quot;news_notice&quot;,
+    &quot;source&quot;: { &quot;desc&quot;: &quot;运维周报&quot;, &quot;desc_color&quot;: 0 },
+    &quot;main_title&quot;: { &quot;title&quot;: &quot;本周运维周报&quot; },
+    &quot;card_image&quot;: { &quot;url&quot;: &quot;https://example.com/banner.png&quot;, &quot;aspect_ratio&quot;: 1.3 },
+    &quot;vertical_content_list&quot;: [
+      { &quot;title&quot;: &quot;告警数&quot;, &quot;desc&quot;: &quot;较上周下降 12%&quot; }
+    ],
+    &quot;card_action&quot;: { &quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/weekly&quot; }
+  }
+}
+</code></pre>
+<p>关键约束：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>card_action</code></td>
+<td><strong>必填</strong>，<code>type=1</code> 跳 url、<code>type=2</code> 跳小程序</td>
+</tr>
+<tr>
+<td><code>main_title.title</code></td>
+<td><code>news_notice</code> 必填；<code>text_notice</code> 中与 <code>sub_title_text</code> 二选一</td>
+</tr>
+<tr>
+<td><code>card_image</code></td>
+<td><code>news_notice</code> 必填，<code>aspect_ratio</code> 建议 1.3~2.25</td>
+</tr>
+<tr>
+<td><code>horizontal_content_list</code></td>
+<td>≤6 条，<code>type</code> 为 1=url / 2=附件 / 3=成员详情</td>
+</tr>
+<tr>
+<td><code>vertical_content_list</code></td>
+<td>≤4 条，仅 <code>news_notice</code></td>
+</tr>
+<tr>
+<td><code>jump_list</code></td>
+<td>≤3 条</td>
+</tr>
+<tr>
+<td><code>quote_area</code></td>
+<td>引用文献样式，建议不与 <code>emphasis_content</code> 共用</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python">from wecom_robot import text_notice_card, news_notice_card
+
+card = text_notice_card(
+    title=&quot;磁盘使用率告警&quot;,
+    url=&quot;https://example.com/dashboard&quot;,
+    desc=&quot;生产环境 /data 分区&quot;,
+    emphasis_title=&quot;92%&quot;,
+    emphasis_desc=&quot;当前使用率&quot;,
+)
+bot.send_template_card(card)
+</code></pre>
+<h2>四、素材上传 upload_media</h2>
+<p><code>file</code>、<code>voice</code> 都要先上传：</p>
+<pre><code class="language-text">POST https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media?key=YOUR_KEY_HERE&amp;type=file
+Content-Type: multipart/form-data
+</code></pre>
+<ul>
+<li>表单文件字段名为 <code>media</code>，需带 <code>filename</code>、<code>filelength</code>、<code>Content-Type</code>。</li>
+<li><code>key</code> 取自 webhook 地址的查询参数；<code>type</code> 为 <code>file</code> 或 <code>voice</code>。</li>
+<li>返回：<code>{"errcode":0,"errmsg":"ok","type":"file","media_id":"...","created_at":"..."}</code>。</li>
+<li><strong><code>media_id</code> 仅 3 天内有效，且只能被上传它的那个机器人使用</strong>。</li>
+</ul>
+<pre><code class="language-bash">curl -F &quot;media=@report.xlsx;type=application/octet-stream&quot; \
+  &quot;$WECOM_WEBHOOK_UPLOAD_URL&amp;type=file&quot;
+</code></pre>
+<pre><code class="language-python">media_id = bot.upload_media(&quot;./report.xlsx&quot;, &quot;file&quot;)
+bot.send_raw({&quot;msgtype&quot;: &quot;file&quot;, &quot;file&quot;: {&quot;media_id&quot;: media_id}})
+</code></pre>
+<h2>五、限制与排错</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>发送频率</td>
+<td>每个机器人 <strong>≤20 条/分钟</strong></td>
+</tr>
+<tr>
+<td><code>text.content</code></td>
+<td>≤2048 字节</td>
+</tr>
+<tr>
+<td><code>markdown</code> / <code>markdown_v2</code></td>
+<td>≤4096 字节</td>
+</tr>
+<tr>
+<td><code>image</code></td>
+<td>≤2M，JPG / PNG</td>
+</tr>
+<tr>
+<td><code>news.articles</code></td>
+<td>1~8 条</td>
+</tr>
+<tr>
+<td>上传素材</td>
+<td>必须 <strong>&gt;5 字节</strong></td>
+</tr>
+<tr>
+<td><code>file</code></td>
+<td>≤20M</td>
+</tr>
+<tr>
+<td><code>voice</code></td>
+<td>≤2M、≤60s、仅 AMR</td>
+</tr>
+<tr>
+<td><code>media_id</code></td>
+<td>3 天有效</td>
+</tr>
+</tbody>
+</table>
+<p>常见返回码：</p>
+<table>
+<thead>
+<tr>
+<th>errcode</th>
+<th>含义</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>成功</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>93000</code></td>
+<td>无效 webhook / key</td>
+<td>检查地址，必要时在群设置里重置机器人</td>
+</tr>
+<tr>
+<td><code>45009</code></td>
+<td>接口调用超过限制</td>
+<td>降频，控制在 20 条/分钟内</td>
+</tr>
+<tr>
+<td><code>40058</code> / <code>40001</code></td>
+<td>参数不合法 / 校验失败</td>
+<td>对照上表检查字段与字节数</td>
+</tr>
+</tbody>
+</table>
+<p>返回的 <code>errcode</code> 非 0 时，封装会抛 <code>WeComError</code>（带 <code>errcode</code>、<code>errmsg</code>），异常信息中的 URL 已打码。</p>
+<h2>六、命令行速查</h2>
+<pre><code class="language-bash">python wecom_robot.py check                 # 配置检查（脱敏输出）
+python wecom_robot.py demo                 # 打印 8 类消息体，不发送
+python wecom_robot.py text &quot;告警&quot;           # 发送文本
+python wecom_robot.py markdown &quot;**加粗**&quot;   # 发送 Markdown
+python wecom_robot.py markdown-v2 &quot;# 周报&quot;  # 发送 Markdown V2
+python wecom_robot.py image ./chart.png    # 发送图片
+python wecom_robot.py file ./report.xlsx   # 上传并发送文件
+python wecom_robot.py voice ./notice.amr   # 发送语音
+python wecom_robot.py card                 # 发送模板卡片示例
+# 任意命令加 --dry-run 只打印请求体、不联网
+</code></pre>
+<p>所有示例地址均为占位符，运行前请先设置 <code>WECOM_WEBHOOK</code>。</p></div>
+<div class="pager"><a href="/notes/doc-f6f8edc524.html">&laquo; 从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（中）</a><span></span></div>
+</article>
+</main>
+<div class="footer">Lucky Ye · 运维工作记录 · 由 scripts/build_notes.py 从 notes/*.md 生成</div>
+</body>
+</html>

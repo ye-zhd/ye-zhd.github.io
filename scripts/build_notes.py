@@ -3,16 +3,33 @@
 """
 Build the documentation section of this static Hexo snapshot.
 
-Source of truth : notes/*.md
+Source of truth : notes/*.md  (every md is discovered automatically)
 Generated       : notes/index.html, notes/<slug>.html, notes/doc.css, notes/doc.js
-Patched         : all Hexo-generated *.html (nav entry), search.xml (local search)
+Patched         : all Hexo-generated *.html (nav, article stream, counters), search.xml
 
 Usage: python scripts/build_notes.py
-The script is idempotent: run it again after adding/removing md files.
+
+Daily workflow:
+  1. Add / edit / delete a .md file under notes/
+  2. Run this script (it rebuilds pages, nav, archive, counters and search index)
+  3. git add -A && git commit && git push
+
+Optional YAML-ish front-matter at the top of a new md:
+  ---
+  title: 自定义标题
+  slug: my-custom-url
+  group: 数据库
+  date: 2026-11-06
+  ---
+Without it, the filename becomes the title and a stable slug is generated.
+
+DOCS below only pins slugs/groups for the original 13 files so their URLs
+never change. New md files need no registration.
 """
 from __future__ import annotations
 
 import datetime
+import hashlib
 import html
 import re
 from pathlib import Path
@@ -33,22 +50,26 @@ MENU_ANCHOR = '<div class="menus_item"><a class="site-page" href="/about/">'
 HEXO_MARK = 'Hexo 5.4.0'
 
 GROUPS = ["数据库", "安全与网络", "日志与中间件", "存储与工具"]
+DEFAULT_GROUP = "未分类"
+GEN_MARK = "<!-- GENERATED-BY: build_notes.py -->"
 
-DOCS = [
-    ("Innodb数据文件损坏导致Mysql无法启动.md", "mysql-innodb-corruption", "数据库"),
-    ("mysql数据库备份还原.md", "mysql-backup-restore", "数据库"),
-    ("docker-compose搭建mysql主从复制.md", "docker-compose-mysql-replication", "数据库"),
-    ("clickhouse的zookeeper升级与配置acl账号.md", "clickhouse-zookeeper-acl", "数据库"),
-    ("dbeaver连接带kerberos认证的impala.md", "dbeaver-kerberos-impala", "数据库"),
-    ("OpenEuler22.03安装 Fail2Ban防SSH暴力破解.md", "openeuler-fail2ban", "安全与网络"),
-    ("服务器中xmrig挖矿病毒排除分析.md", "xmrig-mining-virus", "安全与网络"),
-    ("frp内网穿透搭建.md", "frp-intranet-penetration", "安全与网络"),
-    ("lvs+keeplived+nginx.md", "lvs-keepalived-nginx", "安全与网络"),
-    ("docker搭建ELK日志监控系统.md", "docker-elk", "日志与中间件"),
-    ("kafka配置kerberos.md", "kafka-kerberos", "日志与中间件"),
-    ("linux nfs目录共享.md", "linux-nfs-share", "存储与工具"),
-    ("远程软件rustdesk server搭建.md", "rustdesk-server", "存储与工具"),
-]
+DOCS = {
+    "Innodb数据文件损坏导致Mysql无法启动.md": ("mysql-innodb-corruption", "数据库"),
+    "mysql数据库备份还原.md": ("mysql-backup-restore", "数据库"),
+    "docker-compose搭建mysql主从复制.md": ("docker-compose-mysql-replication", "数据库"),
+    "clickhouse的zookeeper升级与配置acl账号.md": ("clickhouse-zookeeper-acl", "数据库"),
+    "dbeaver连接带kerberos认证的impala.md": ("dbeaver-kerberos-impala", "数据库"),
+    "OpenEuler22.03安装 Fail2Ban防SSH暴力破解.md": ("openeuler-fail2ban", "安全与网络"),
+    "服务器中xmrig挖矿病毒排除分析.md": ("xmrig-mining-virus", "安全与网络"),
+    "frp内网穿透搭建.md": ("frp-intranet-penetration", "安全与网络"),
+    "lvs+keeplived+nginx.md": ("lvs-keepalived-nginx", "安全与网络"),
+    "docker搭建ELK日志监控系统.md": ("docker-elk", "日志与中间件"),
+    "kafka配置kerberos.md": ("kafka-kerberos", "日志与中间件"),
+    "linux nfs目录共享.md": ("linux-nfs-share", "存储与工具"),
+    "远程软件rustdesk server搭建.md": ("rustdesk-server", "存储与工具"),
+}
+
+FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.S)
 
 CSS = r"""
 *{box-sizing:border-box}
@@ -146,6 +167,7 @@ HEAD = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
+<!-- GENERATED-BY: build_notes.py -->
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -211,25 +233,101 @@ def write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline=newline)
 
 
+def parse_front_matter(raw: str) -> tuple[dict, str]:
+    m = FM_RE.match(raw)
+    meta = {}
+    if not m:
+        return meta, raw
+    for line in m.group(1).splitlines():
+        if ":" in line and not line.strip().startswith("#"):
+            k, v = line.split(":", 1)
+            meta[k.strip()] = v.strip().strip("\"'")
+    return meta, raw[m.end():]
+
+
+def auto_slug(filename: str) -> str:
+    stem = Path(filename).stem
+    if re.fullmatch(r"[A-Za-z0-9_\- .]+", stem):
+        return re.sub(r"[^A-Za-z0-9]+", "-", stem).strip("-").lower()[:60]
+    return "doc-" + hashlib.md5(filename.encode("utf-8")).hexdigest()[:10]
+
+
+def discover_docs() -> list[tuple[str, str, str]]:
+    """Pinned files first (stable URLs), then any other md, alphabetically."""
+    items: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+    used_slugs: set[str] = set()
+
+    for filename, (slug, group) in DOCS.items():
+        if not (NOTES / filename).exists():
+            print("  [warn] pinned source missing: %s" % filename)
+            continue
+        items.append((filename, slug, group))
+        seen.add(filename)
+        used_slugs.add(slug)
+
+    for src in sorted(NOTES.glob("*.md"), key=lambda p: p.name):
+        if src.name in seen:
+            continue
+        meta, _ = parse_front_matter(src.read_text(encoding="utf-8"))
+        slug = meta.get("slug") or auto_slug(src.name)
+        base, n = slug, 2
+        while slug in used_slugs or not slug:
+            slug = "%s-%d" % (base, n)
+            n += 1
+        used_slugs.add(slug)
+        items.append((src.name, slug, meta.get("group") or DEFAULT_GROUP))
+    return items
+
+
+def cleanup_generated(entries: list[dict]) -> None:
+    """Remove article pages whose md source no longer exists."""
+    keep = {e["slug"] + ".html" for e in entries}
+    removed = []
+    for path in NOTES.glob("*.html"):
+        if path.name == "index.html" or path.name in keep:
+            continue
+        if GEN_MARK not in path.read_text(encoding="utf-8"):
+            continue
+        path.unlink()
+        removed.append(path.name)
+    if removed:
+        print("  removed %d stale page(s): %s" % (len(removed), ", ".join(removed)))
+
+
+def count_original_posts() -> int:
+    """Count pre-existing Hexo entries (before the NOTES block in search.xml)."""
+    s = SEARCH_XML.read_text(encoding="utf-8")
+    n = s.split("<!-- NOTES_BEGIN -->")[0].count("<entry>")
+    return n or FALLBACK_ORIGINAL_POSTS
+
+
 def build_pages() -> list[dict]:
     entries = []
-    for filename, slug, group in DOCS:
+    for filename, slug, group in discover_docs():
         src = NOTES / filename
-        if not src.exists():
-            print("  [warn] missing source: %s" % filename)
-            continue
-        text = src.read_text(encoding="utf-8")
-        title = src.stem
+        raw = src.read_text(encoding="utf-8")
+        meta, text = parse_front_matter(raw)
         dt = datetime.datetime.fromtimestamp(src.stat().st_mtime)
+        explicit_date = bool(meta.get("date"))
+        date = meta.get("date") or dt.strftime("%Y-%m-%d")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+            date = dt.strftime("%Y-%m-%d")
+            explicit_date = False
+        iso = (
+            date + "T00:00:00.000Z"
+            if explicit_date
+            else dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        )
         entries.append({
             "filename": filename,
             "slug": slug,
             "group": group,
-            "title": title,
+            "title": meta.get("title") or src.stem,
             "chars": len(text),
             "body": render_md(text),
-            "date": dt.strftime("%Y-%m-%d"),
-            "iso": dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "date": date,
+            "iso": iso,
             "url": "/notes/%s.html" % slug,
         })
 
@@ -248,9 +346,11 @@ def build_pages() -> list[dict]:
             )
         )
 
+    used_groups = [g for g in GROUPS if any(e["group"] == g for e in entries)]
+    used_groups += sorted({e["group"] for e in entries} - set(used_groups))
     chips = ['<button class="chip on" data-group="all">全部</button>'] + [
         '<button class="chip" data-group="{0}">{0}</button>'.format(html.escape(g))
-        for g in GROUPS
+        for g in used_groups
     ]
 
     index_html = (
@@ -348,7 +448,7 @@ def patch_search(entries: list[dict]) -> None:
     print("  search.xml now indexes %d extra entries" % len(entries))
 
 
-ORIGINAL_POSTS = 3  # existing Hexo articles: posts/2,3,4.html
+FALLBACK_ORIGINAL_POSTS = 3  # used only if search.xml cannot be parsed
 
 COVER_SVG = (
     "<svg xmlns='http://www.w3.org/2000/svg' width='640' height='400'>"
@@ -408,30 +508,37 @@ def archive_html(e: dict) -> str:
              iso=e["iso"], date=e["date"])
 
 
+def archive_block(entries: list[dict]) -> str:
+    out, last_year = [], None
+    for e in sorted(entries, key=lambda x: x["date"], reverse=True):
+        year = e["date"][:4]
+        if year != last_year:
+            out.append('<div class="article-sort-item year">%s</div>' % year)
+            last_year = year
+        out.append(archive_html(e))
+    return "".join(out)
+
+
 def patch_blog_stream(entries: list[dict]) -> None:
     """Merge the docs into the Hexo article stream (home, counters, widgets, archive)."""
-    total = ORIGINAL_POSTS + len(entries)
+    total = count_original_posts() + len(entries)
     latest = max((e["iso"] for e in entries), default=None)
     home = ROOT / "index.html"
     archive = ROOT / "archives" / "index.html"
 
+    ordered = sorted(entries, key=lambda x: x["date"], reverse=True)
     s = strip_marks(home.read_text(encoding="utf-8"), POSTS_B, POSTS_E)
     anchor = 'id="recent-posts">'
     s = s.replace(
         anchor,
-        anchor + POSTS_B + "".join(card_html(e, i) for i, e in enumerate(entries)) + POSTS_E,
+        anchor + POSTS_B + "".join(card_html(e, i) for i, e in enumerate(ordered)) + POSTS_E,
         1,
     )
     write(home, s)
 
     s = strip_marks(archive.read_text(encoding="utf-8"), ARCH_B, ARCH_E)
     anchor = '<div class="article-sort">'
-    year = '<div class="article-sort-item year">%s</div>' % (entries[0]["date"][:4] if entries else "")
-    s = s.replace(
-        anchor,
-        anchor + ARCH_B + year + "".join(archive_html(e) for e in entries) + ARCH_E,
-        1,
-    )
+    s = s.replace(anchor, anchor + ARCH_B + archive_block(ordered) + ARCH_E, 1)
     write(archive, s)
 
     widgets = 0
@@ -449,7 +556,7 @@ def patch_blog_stream(entries: list[dict]) -> None:
             s = (
                 s[:cut]
                 + ASIDE_B
-                + "".join(aside_html(e) for e in entries[:5])
+                + "".join(aside_html(e) for e in ordered[:5])
                 + ASIDE_E
                 + s[cut:]
             )
@@ -474,6 +581,7 @@ def patch_blog_stream(entries: list[dict]) -> None:
 def main() -> None:
     print("Building notes from %s" % NOTES)
     entries = build_pages()
+    cleanup_generated(entries)
     patch_navigation()
     patch_blog_stream(entries)
     patch_search(entries)
