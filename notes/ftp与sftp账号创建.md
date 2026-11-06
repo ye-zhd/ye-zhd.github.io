@@ -5,22 +5,23 @@ group: 存储与工具
 date: 2026-11-06
 ---
 
-自动升级那边要往机器上丢包，开了个 ftp 账号 evercm，根目录 `/data/eversec/data/ftp/evercm`，能写的只有下面一层 `autoUpgrade`。这台机器之前被人手工改过 vsftpd.conf，同一个 key 重复写了好几行，所以顺手把去重也塞进脚本里了。
 
-密码不往文档里贴，脚本里 `FTP_PASS` 那个变量执行前自己填，跑完把脚本从共享目录删掉。下面命令都是 root 跑的。
 
-# 1、先把 vsftpd 装上
+# 1、背景
 
-脚本一开头就探测，`command -v vsftpd` 和 `/usr/sbin/vsftpd` 都找不到就直接退出。不然后面改配置、建用户全是白忙。
+需要新建一个evercm 账号用来ftp或者sftp
 
 ```bash
 dnf install -y vsftpd
 systemctl enable --now vsftpd
+目录：/data/eversec/data/ftp/evercm/autoUpgrade
+账号：evercm
+密码：EverSec@3141913113
 ```
 
 欧拉 2203 用 dnf，centos7 换 yum，别的发型包名字差不多。
 
-# 2、目录权限这块最容易翻车
+# 2、目录权限
 
 vsftpd 登录时要一路 chdir 到家目录，中间任何一级目录没有 `o+x`，客户端就报 `500 OOPS: chdir`，而且日志里看不出是哪一级。之前查了半天，最后是 `/data/eversec` 少了执行位。
 
@@ -56,9 +57,9 @@ allow_writeable_chroot=YES
 
 直接 `echo >>` 追加会出现同一个 key 写好几行，vsftpd 取哪条不好说。脚本里的 `dedup_conf` 先 `grep -cE` 数一下，超过 1 行就全删再追加，只有 1 行且值一样就不动，值不一样再加一条（后写的生效）。这样重复跑脚本也不会把配置文件越撑越大。
 
-改完不用手动备份，先 `cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak` 心里踏实点。
+改完不用手动备份，先 `cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak` 。
 
-# 5、建用户
+5、建用户
 
 ```bash
 useradd -d /data/eversec/data/ftp/evercm -s /sbin/nologin evercm
