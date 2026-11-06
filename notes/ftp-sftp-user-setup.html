@@ -21,16 +21,17 @@
 <article class="article">
 <div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / 存储与工具</div>
 <h1 class="title">ftp 和 sftp 账号创建记录</h1>
-<p class="sub">存储与工具 · 约 7332 字 · <a href="/notes/ftp与sftp账号创建.md">查看 Markdown 原文</a></p>
-<div class="md-body"><p>自动升级那边要往机器上丢包，开了个 ftp 账号 evercm，根目录 <code>/data/eversec/data/ftp/evercm</code>，能写的只有下面一层 <code>autoUpgrade</code>。这台机器之前被人手工改过 vsftpd.conf，同一个 key 重复写了好几行，所以顺手把去重也塞进脚本里了。</p>
-<p>密码不往文档里贴，脚本里 <code>FTP_PASS</code> 那个变量执行前自己填，跑完把脚本从共享目录删掉。下面命令都是 root 跑的。</p>
-<h1>1、先把 vsftpd 装上</h1>
-<p>脚本一开头就探测，<code>command -v vsftpd</code> 和 <code>/usr/sbin/vsftpd</code> 都找不到就直接退出。不然后面改配置、建用户全是白忙。</p>
+<p class="sub">存储与工具 · 约 7120 字 · <a href="/notes/ftp与sftp账号创建.md">查看 Markdown 原文</a></p>
+<div class="md-body"><h1>1、背景</h1>
+<p>需要新建一个evercm 账号用来ftp或者sftp</p>
 <pre><code class="language-bash">dnf install -y vsftpd
 systemctl enable --now vsftpd
+目录：/data/eversec/data/ftp/evercm/autoUpgrade
+账号：evercm
+密码：EverSec@3141913113
 </code></pre>
 <p>欧拉 2203 用 dnf，centos7 换 yum，别的发型包名字差不多。</p>
-<h1>2、目录权限这块最容易翻车</h1>
+<h1>2、目录权限</h1>
 <p>vsftpd 登录时要一路 chdir 到家目录，中间任何一级目录没有 <code>o+x</code>，客户端就报 <code>500 OOPS: chdir</code>，而且日志里看不出是哪一级。之前查了半天，最后是 <code>/data/eversec</code> 少了执行位。</p>
 <p>所以脚本里从 <code>/</code> 开始把每一级都过一遍，用 <code>stat -c '%A'</code> 取第 10 个字符判断 other 有没有 x，没有就补 <code>chmod o+x</code>。别一上来 <code>chmod -R 755 /data</code>，把整个数据目录的权限都改了不划算。</p>
 <pre><code class="language-bash">mkdir -p /data/eversec/data/ftp/evercm/autoUpgrade
@@ -51,8 +52,8 @@ anonymous_enable=NO
 allow_writeable_chroot=YES
 </code></pre>
 <p>直接 <code>echo &gt;&gt;</code> 追加会出现同一个 key 写好几行，vsftpd 取哪条不好说。脚本里的 <code>dedup_conf</code> 先 <code>grep -cE</code> 数一下，超过 1 行就全删再追加，只有 1 行且值一样就不动，值不一样再加一条（后写的生效）。这样重复跑脚本也不会把配置文件越撑越大。</p>
-<p>改完不用手动备份，先 <code>cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak</code> 心里踏实点。</p>
-<h1>5、建用户</h1>
+<p>改完不用手动备份，先 <code>cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak</code> 。</p>
+<p>5、建用户</p>
 <pre><code class="language-bash">useradd -d /data/eversec/data/ftp/evercm -s /sbin/nologin evercm
 </code></pre>
 <p><code>/sbin/nologin</code> 是为了不给 shell 登录权限，ftp 认证走 PAM 照样能用。脚本里用 <code>id evercm</code> 判了一下，用户已存在就跳过 useradd，只把目录属主和权限重新刷一遍，所以这个脚本是幂等的，跑几次都不会出事。</p>
