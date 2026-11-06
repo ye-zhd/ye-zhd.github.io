@@ -1,0 +1,59 @@
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  color:#24292f;background-color:#f6f7f9;
+  background-image:linear-gradient(rgba(15,23,42,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(15,23,42,.028) 1px,transparent 1px);
+  background-size:24px 24px;line-height:1.7;
+}
+a{color:#185fa5;text-decoration:none}
+a:hover{color:#0c447c}
+.topbar{background:#24292f;color:#fff}
+.topbar-inner{max-width:1080px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{font-size:16px;font-weight:500;color:#fff;letter-spacing:.3px}
+.brand:hover{color:#fff;opacity:.85}
+.topbar .sep{opacity:.35}
+.topbar .nav-link{color:#c9d1d9;font-size:13px}
+.topbar .nav-link:hover{color:#fff}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 24px 64px}
+.page-head{margin-bottom:26px}
+.page-head h1{font-size:26px;font-weight:500;margin:0 0 8px}
+.page-head p{margin:0;color:#6b7280;font-size:14px}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:22px}
+#q{flex:1;min-width:220px;padding:10px 14px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;font-size:14px;outline:none}
+#q:focus{border-color:#185fa5}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:7px 13px;border:1px solid #dfe3e8;border-radius:999px;background:#fff;color:#4b5563;font-size:13px;cursor:pointer}
+.chip.on{background:#24292f;border-color:#24292f;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{display:block;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-2px);border-color:#185fa5}
+.card h2{margin:0 0 10px;font-size:16px;font-weight:500;line-height:1.5;word-break:break-word}
+.card .meta{font-size:12px;color:#8a909a;display:flex;gap:10px;align-items:center}
+.badge{display:inline-block;padding:2px 9px;border-radius:6px;background:#eef4fc;color:#185fa5;font-size:12px}
+.empty{padding:40px;text-align:center;color:#8a909a;background:#fff;border:1px dashed #e5e7eb;border-radius:12px}
+.article{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:32px 36px;max-width:920px;margin:0 auto}
+.crumb{font-size:13px;color:#8a909a;margin-bottom:18px}
+.crumb a{color:#185fa5}
+.article h1.title{font-size:26px;font-weight:500;margin:0 0 6px;word-break:break-word}
+.article .sub{margin:0 0 24px;color:#8a909a;font-size:13px;border-bottom:1px solid #eceef1;padding-bottom:18px}
+.md-body{font-size:15px;overflow-wrap:break-word}
+.md-body h1,.md-body h2,.md-body h3,.md-body h4{font-weight:500;line-height:1.4;margin:28px 0 12px}
+.md-body h1{font-size:22px}.md-body h2{font-size:19px}.md-body h3{font-size:16px}.md-body h4{font-size:15px}
+.md-body p{margin:12px 0}
+.md-body ul,.md-body ol{padding-left:24px}
+.md-body li{margin:5px 0}
+.md-body blockquote{margin:14px 0;padding:10px 16px;border-left:3px solid #185fa5;background:#f6f8fb;color:#4b5563}
+.md-body pre{background:#1f2430;color:#e6edf3;padding:16px 18px;border-radius:9px;overflow-x:auto;font-size:13px;line-height:1.6}
+.md-body code{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px}
+.md-body :not(pre)>code{background:#f1f3f6;color:#b5305f;padding:2px 5px;border-radius:4px}
+.md-body table{border-collapse:collapse;width:100%;margin:16px 0;font-size:14px;display:block;overflow-x:auto}
+.md-body th,.md-body td{border:1px solid #e1e4e8;padding:8px 12px;text-align:left}
+.md-body th{background:#f6f8fb}
+.md-body img{max-width:100%;height:auto}
+.md-body hr{border:0;border-top:1px solid #e5e7eb;margin:24px 0}
+.md-body a{word-break:break-all}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid #eceef1;font-size:13px;flex-wrap:wrap}
+.pager span{color:#c0c4cc}
+.footer{max-width:1080px;margin:0 auto;padding:0 24px 40px;color:#8a909a;font-size:12px}
+@media(max-width:640px){.article{padding:22px 18px}.wrap{padding:24px 16px 48px}.topbar-inner{padding:12px 16px}}
