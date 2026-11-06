@@ -21,7 +21,7 @@
 <article class="article">
 <div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / 开发工具</div>
 <h1 class="title">企业微信群机器人接口速查与 Python 封装</h1>
-<p class="sub">开发工具 · 发表于 <time datetime="2026-11-06T00:00:00.000Z">2026-11-06</time> · 约 8280 字 · <a href="/notes/企业微信群机器人接口速查.md">查看 Markdown 原文</a></p>
+<p class="sub">开发工具 · 发表于 <time datetime="2026-11-06T00:00:00.000Z">2026-11-06</time> · 约 25080 字 · <a href="/notes/企业微信群机器人接口速查.md">查看 Markdown 原文</a></p>
 <div class="md-body"><h1>企业微信群机器人接口速查</h1>
 <blockquote>
 <p>官方文档：<a href="https://developer.work.weixin.qq.com/document/path/91770">消息推送（群机器人）配置说明</a>
@@ -420,7 +420,483 @@ python wecom_robot.py voice ./notice.amr   # 发送语音
 python wecom_robot.py card                 # 发送模板卡片示例
 # 任意命令加 --dry-run 只打印请求体、不联网
 </code></pre>
-<p>所有示例地址均为占位符，运行前请先设置 <code>WECOM_WEBHOOK</code>。</p></div>
+<p>所有示例地址均为占位符，运行前请先设置 <code>WECOM_WEBHOOK</code>。</p>
+<hr />
+<h2>七、附：wecom_robot.py 完整源码</h2>
+<p>上面各节的请求体例子都出自这份脚本，零第三方依赖，只用标准库。真实 webhook 只从环境变量 / <code>.env</code> 读，代码里不含任何 key；日志和异常里的地址也会打码。</p>
+<p>保存成 <code>wecom_robot.py</code>，配好 <code>WECOM_WEBHOOK</code> 就能直接跑。<code>python wecom_robot.py demo</code> 只打印请求体、不联网，改代码前可以先用它对照。</p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+&quot;&quot;&quot;
+企业微信群机器人（消息推送）接口封装 —— 零第三方依赖，仅用 Python 标准库。
+
+官方文档: https://developer.work.weixin.qq.com/document/path/91770
+
+支持的消息类型（8 种）:
+    text / markdown / markdown_v2 / image / news / file / voice / template_card
+辅助接口:
+    upload_media —— file、voice 需先上传获取 media_id
+
+安全约定（重要）:
+    * 真实 webhook 地址绝不写进本文件、文档或任何会提交到 Git 的文件。
+    * 优先读取环境变量 WECOM_WEBHOOK；也可放在被 .gitignore 的 .env 里。
+    * 只配置了 key 时可用 WECOM_WEBHOOK_KEY，由程序拼接地址。
+    * 所有日志/异常输出都会对 key 做脱敏。
+
+命令行示例:
+    python wecom_robot.py check                     # 检查配置（脱敏输出）
+    python wecom_robot.py demo                     # 打印 8 类消息体，不发送
+    python wecom_robot.py text &quot;服务器告警&quot;          # 发送文本
+    python wecom_robot.py markdown &quot;**加粗**&quot;       # 发送 Markdown
+    python wecom_robot.py image ./chart.png        # 发送图片
+    python wecom_robot.py file ./report.xlsx       # 上传并发送文件
+    python wecom_robot.py card                     # 发送模板卡片示例
+    python wecom_robot.py text &quot;hi&quot; --dry-run      # 只打印请求体，不联网
+&quot;&quot;&quot;
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+import mimetypes
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+from pathlib import Path
+from typing import Any
+
+SEND_URL = &quot;https://qyapi.weixin.qq.com/cgi-bin/webhook/send&quot;
+UPLOAD_URL = &quot;https://qyapi.weixin.qq.com/cgi-bin/webhook/upload_media&quot;
+
+ENV_WEBHOOK = &quot;WECOM_WEBHOOK&quot;
+ENV_KEY = &quot;WECOM_WEBHOOK_KEY&quot;
+
+# 官方限制
+MAX_TEXT_BYTES = 2048
+MAX_MARKDOWN_BYTES = 4096
+MAX_IMAGE_BYTES = 2 * 1024 * 1024
+MAX_FILE_BYTES = 20 * 1024 * 1024
+MAX_VOICE_BYTES = 2 * 1024 * 1024
+MIN_UPLOAD_BYTES = 5
+MAX_NEWS_ARTICLES = 8
+RATE_LIMIT_PER_MINUTE = 20
+
+
+class WeComError(Exception):
+    &quot;&quot;&quot;企业微信接口返回错误或网络异常。&quot;&quot;&quot;
+
+    def __init__(self, message: str, errcode: int | None = None, errmsg: str | None = None):
+        super().__init__(message)
+        self.errcode = errcode
+        self.errmsg = errmsg
+
+
+def mask_webhook(url: str) -&gt; str:
+    &quot;&quot;&quot;把 webhook 中的 key 打码，用于日志与异常信息。&quot;&quot;&quot;
+    return re.sub(r&quot;(key=)[^&amp;\s'\&quot;]+&quot;, r&quot;\1***&quot;, url or &quot;&quot;)
+
+
+def load_dotenv(path: str | Path = &quot;.env&quot;) -&gt; None:
+    &quot;&quot;&quot;读取简易 .env（KEY=VALUE），不覆盖已有环境变量。&quot;&quot;&quot;
+    p = Path(path)
+    if not p.exists():
+        return
+    for line in p.read_text(encoding=&quot;utf-8&quot;).splitlines():
+        line = line.strip()
+        if not line or line.startswith(&quot;#&quot;) or &quot;=&quot; not in line:
+            continue
+        k, v = line.split(&quot;=&quot;, 1)
+        os.environ.setdefault(k.strip(), v.strip().strip(&quot;\&quot;'&quot;))
+
+
+def resolve_webhook(explicit: str | None = None) -&gt; str:
+    &quot;&quot;&quot;按 显式参数 &gt; 环境变量 &gt; .env &gt; KEY 环境变量 的顺序取得 webhook。&quot;&quot;&quot;
+    load_dotenv()
+    url = explicit or os.environ.get(ENV_WEBHOOK, &quot;&quot;).strip()
+    if url:
+        return url
+    key = os.environ.get(ENV_KEY, &quot;&quot;).strip()
+    if key:
+        return &quot;%s?key=%s&quot; % (SEND_URL, key)
+    raise WeComError(
+        &quot;未配置 webhook。请设置环境变量 %s（完整地址）或 %s（仅 key），&quot;
+        &quot;或把 %s=... 写入被 .gitignore 的 .env 文件。&quot; % (ENV_WEBHOOK, ENV_KEY, ENV_WEBHOOK)
+    )
+
+
+def _check_bytes(text: str, limit: int, field: str) -&gt; None:
+    size = len(text.encode(&quot;utf-8&quot;))
+    if size &gt; limit:
+        raise ValueError(&quot;%s 超出限制：%d 字节 &gt; %d 字节&quot; % (field, size, limit))
+
+
+def _url_key(webhook: str) -&gt; str:
+    q = urllib.parse.parse_qs(urllib.parse.urlparse(webhook).query)
+    key = q.get(&quot;key&quot;, [&quot;&quot;])[0]
+    if not key:
+        raise WeComError(&quot;webhook 地址中缺少 key 参数，无法调用 upload_media&quot;)
+    return key
+
+
+# ---------------------------------------------------------------------------
+# 消息体构造器：便于单独打印/自测，不依赖网络
+# ---------------------------------------------------------------------------
+
+def text_payload(
+    content: str,
+    mentioned_list: list[str] | None = None,
+    mentioned_mobile_list: list[str] | None = None,
+) -&gt; dict:
+    &quot;&quot;&quot;文本消息，支持 @成员 / @所有人。&quot;&quot;&quot;
+    _check_bytes(content, MAX_TEXT_BYTES, &quot;text.content&quot;)
+    body: dict[str, Any] = {&quot;content&quot;: content}
+    if mentioned_list:
+        body[&quot;mentioned_list&quot;] = mentioned_list
+    if mentioned_mobile_list:
+        body[&quot;mentioned_mobile_list&quot;] = mentioned_mobile_list
+    return {&quot;msgtype&quot;: &quot;text&quot;, &quot;text&quot;: body}
+
+
+def markdown_payload(content: str) -&gt; dict:
+    &quot;&quot;&quot;Markdown（支持有限语法与 3 种字体颜色，支持 &lt;@userid&gt;）。&quot;&quot;&quot;
+    _check_bytes(content, MAX_MARKDOWN_BYTES, &quot;markdown.content&quot;)
+    return {&quot;msgtype&quot;: &quot;markdown&quot;, &quot;markdown&quot;: {&quot;content&quot;: content}}
+
+
+def markdown_v2_payload(content: str) -&gt; dict:
+    &quot;&quot;&quot;Markdown V2（支持表格/代码块/图片，不支持字体颜色与 @）。&quot;&quot;&quot;
+    _check_bytes(content, MAX_MARKDOWN_BYTES, &quot;markdown_v2.content&quot;)
+    return {&quot;msgtype&quot;: &quot;markdown_v2&quot;, &quot;markdown_v2&quot;: {&quot;content&quot;: content}}
+
+
+def image_payload(image_path: str | Path) -&gt; dict:
+    &quot;&quot;&quot;图片消息：本地图片转 base64 + md5（≤2M，JPG/PNG）。&quot;&quot;&quot;
+    p = Path(image_path)
+    data = p.read_bytes()
+    if len(data) &gt; MAX_IMAGE_BYTES:
+        raise ValueError(&quot;图片超过 2M：%d 字节&quot; % len(data))
+    if p.suffix.lower() not in (&quot;.jpg&quot;, &quot;.jpeg&quot;, &quot;.png&quot;):
+        raise ValueError(&quot;图片仅支持 JPG / PNG：%s&quot; % p.suffix)
+    return {
+        &quot;msgtype&quot;: &quot;image&quot;,
+        &quot;image&quot;: {
+            &quot;base64&quot;: base64.b64encode(data).decode(&quot;ascii&quot;),
+            &quot;md5&quot;: hashlib.md5(data).hexdigest(),
+        },
+    }
+
+
+def news_payload(articles: list[dict]) -&gt; dict:
+    &quot;&quot;&quot;图文消息，1~8 条；每条需 title、url，可选 description、picurl。&quot;&quot;&quot;
+    if not 1 &lt;= len(articles) &lt;= MAX_NEWS_ARTICLES:
+        raise ValueError(&quot;图文条数必须在 1~%d 之间&quot; % MAX_NEWS_ARTICLES)
+    for a in articles:
+        if not a.get(&quot;title&quot;) or not a.get(&quot;url&quot;):
+            raise ValueError(&quot;每条图文必须包含 title 和 url&quot;)
+    return {&quot;msgtype&quot;: &quot;news&quot;, &quot;news&quot;: {&quot;articles&quot;: articles}}
+
+
+def file_payload(media_id: str) -&gt; dict:
+    &quot;&quot;&quot;文件消息，media_id 来自 upload_media。&quot;&quot;&quot;
+    return {&quot;msgtype&quot;: &quot;file&quot;, &quot;file&quot;: {&quot;media_id&quot;: media_id}}
+
+
+def voice_payload(media_id: str) -&gt; dict:
+    &quot;&quot;&quot;语音消息，media_id 来自 upload_media（仅 AMR）。&quot;&quot;&quot;
+    return {&quot;msgtype&quot;: &quot;voice&quot;, &quot;voice&quot;: {&quot;media_id&quot;: media_id}}
+
+
+def template_card_payload(card: dict) -&gt; dict:
+    &quot;&quot;&quot;模板卡片：card_type 为 text_notice 或 news_notice。&quot;&quot;&quot;
+    if card.get(&quot;card_type&quot;) not in (&quot;text_notice&quot;, &quot;news_notice&quot;):
+        raise ValueError(&quot;card_type 必须是 text_notice 或 news_notice&quot;)
+    return {&quot;msgtype&quot;: &quot;template_card&quot;, &quot;template_card&quot;: card}
+
+
+def text_notice_card(
+    title: str,
+    url: str,
+    desc: str = &quot;&quot;,
+    emphasis_title: str = &quot;&quot;,
+    emphasis_desc: str = &quot;&quot;,
+    sub_title: str = &quot;&quot;,
+    horizontal: list[dict] | None = None,
+    jumps: list[dict] | None = None,
+    source_desc: str = &quot;运维告警&quot;,
+) -&gt; dict:
+    &quot;&quot;&quot;构造常用的「文本通知模版卡片」。&quot;&quot;&quot;
+    card: dict[str, Any] = {
+        &quot;card_type&quot;: &quot;text_notice&quot;,
+        &quot;source&quot;: {&quot;desc&quot;: source_desc, &quot;desc_color&quot;: 0},
+        &quot;main_title&quot;: {&quot;title&quot;: title, &quot;desc&quot;: desc},
+        &quot;card_action&quot;: {&quot;type&quot;: 1, &quot;url&quot;: url},
+    }
+    if emphasis_title:
+        card[&quot;emphasis_content&quot;] = {&quot;title&quot;: emphasis_title, &quot;desc&quot;: emphasis_desc}
+    if sub_title:
+        card[&quot;sub_title_text&quot;] = sub_title
+    if horizontal:
+        card[&quot;horizontal_content_list&quot;] = horizontal
+    if jumps:
+        card[&quot;jump_list&quot;] = jumps
+    return card
+
+
+def news_notice_card(
+    title: str,
+    image_url: str,
+    url: str,
+    desc: str = &quot;&quot;,
+    vertical: list[dict] | None = None,
+    horizontal: list[dict] | None = None,
+    source_desc: str = &quot;运维告警&quot;,
+) -&gt; dict:
+    &quot;&quot;&quot;构造常用的「图文展示模版卡片」。&quot;&quot;&quot;
+    card: dict[str, Any] = {
+        &quot;card_type&quot;: &quot;news_notice&quot;,
+        &quot;source&quot;: {&quot;desc&quot;: source_desc, &quot;desc_color&quot;: 0},
+        &quot;main_title&quot;: {&quot;title&quot;: title, &quot;desc&quot;: desc},
+        &quot;card_image&quot;: {&quot;url&quot;: image_url, &quot;aspect_ratio&quot;: 1.3},
+        &quot;card_action&quot;: {&quot;type&quot;: 1, &quot;url&quot;: url},
+    }
+    if vertical:
+        card[&quot;vertical_content_list&quot;] = vertical
+    if horizontal:
+        card[&quot;horizontal_content_list&quot;] = horizontal
+    return card
+
+
+# ---------------------------------------------------------------------------
+# 客户端
+# ---------------------------------------------------------------------------
+
+class WeComRobot:
+    &quot;&quot;&quot;企业微信群机器人客户端。
+
+    Args:
+        webhook: 完整 webhook 地址；不传则从环境变量 / .env 读取。
+        timeout: HTTP 超时秒数。
+        dry_run: 为 True 时只返回请求体、不发起网络请求。
+    &quot;&quot;&quot;
+
+    def __init__(self, webhook: str | None = None, timeout: int = 10, dry_run: bool = False):
+        self.webhook = resolve_webhook(webhook)
+        self.timeout = timeout
+        self.dry_run = dry_run
+
+    def __repr__(self) -&gt; str:
+        return &quot;&lt;WeComRobot %s&gt;&quot; % mask_webhook(self.webhook)
+
+    def _post_json(self, payload: dict) -&gt; dict:
+        if self.dry_run:
+            return {&quot;errcode&quot;: 0, &quot;errmsg&quot;: &quot;dry-run&quot;, &quot;payload&quot;: payload}
+        data = json.dumps(payload, ensure_ascii=False).encode(&quot;utf-8&quot;)
+        req = urllib.request.Request(
+            self.webhook,
+            data=data,
+            headers={&quot;Content-Type&quot;: &quot;application/json; charset=utf-8&quot;},
+            method=&quot;POST&quot;,
+        )
+        return self._request(req)
+
+    def _post_multipart(self, url: str, file_path: Path, media_type: str) -&gt; dict:
+        data = file_path.read_bytes()
+        boundary = &quot;----WeComBoundary&quot; + uuid.uuid4().hex
+        head = (
+            &quot;--%s\r\n&quot;
+            'Content-Disposition: form-data; name=&quot;media&quot;; filename=&quot;%s&quot;; filelength=%d\r\n'
+            &quot;Content-Type: %s\r\n\r\n&quot;
+            % (
+                boundary,
+                file_path.name,
+                len(data),
+                mimetypes.guess_type(file_path.name)[0] or &quot;application/octet-stream&quot;,
+            )
+        ).encode(&quot;utf-8&quot;)
+        body = head + data + (&quot;\r\n--%s--\r\n&quot; % boundary).encode(&quot;utf-8&quot;)
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={&quot;Content-Type&quot;: &quot;multipart/form-data; boundary=%s&quot; % boundary},
+            method=&quot;POST&quot;,
+        )
+        return self._request(req)
+
+    def _request(self, req: urllib.request.Request) -&gt; dict:
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                result = json.loads(resp.read().decode(&quot;utf-8&quot;))
+        except urllib.error.HTTPError as e:
+            raise WeComError(&quot;HTTP %s：%s&quot; % (e.code, mask_webhook(getattr(req, &quot;full_url&quot;, &quot;&quot;)))) from e
+        except urllib.error.URLError as e:
+            raise WeComError(&quot;网络异常：%s（%s）&quot; % (e.reason, mask_webhook(getattr(req, &quot;full_url&quot;, &quot;&quot;)))) from e
+        except json.JSONDecodeError as e:
+            raise WeComError(&quot;响应不是合法 JSON：%s&quot; % e) from e
+        if result.get(&quot;errcode&quot;) != 0:
+            raise WeComError(
+                &quot;接口返回错误：errcode=%s errmsg=%s&quot; % (result.get(&quot;errcode&quot;), result.get(&quot;errmsg&quot;)),
+                errcode=result.get(&quot;errcode&quot;),
+                errmsg=result.get(&quot;errmsg&quot;),
+            )
+        return result
+
+    # -- 8 种消息类型 -------------------------------------------------------
+
+    def send_text(self, content: str, mentioned_list=None, mentioned_mobile_list=None) -&gt; dict:
+        return self._post_json(text_payload(content, mentioned_list, mentioned_mobile_list))
+
+    def send_markdown(self, content: str) -&gt; dict:
+        return self._post_json(markdown_payload(content))
+
+    def send_markdown_v2(self, content: str) -&gt; dict:
+        return self._post_json(markdown_v2_payload(content))
+
+    def send_image(self, image_path: str | Path) -&gt; dict:
+        return self._post_json(image_payload(image_path))
+
+    def send_news(self, articles: list[dict]) -&gt; dict:
+        return self._post_json(news_payload(articles))
+
+    def send_file(self, file_path: str | Path) -&gt; dict:
+        media_id = self.upload_media(file_path, &quot;file&quot;)
+        return self._post_json(file_payload(media_id))
+
+    def send_voice(self, voice_path: str | Path) -&gt; dict:
+        media_id = self.upload_media(voice_path, &quot;voice&quot;)
+        return self._post_json(voice_payload(media_id))
+
+    def send_template_card(self, card: dict) -&gt; dict:
+        return self._post_json(template_card_payload(card))
+
+    def send_raw(self, payload: dict) -&gt; dict:
+        &quot;&quot;&quot;发送自定义/未来新增的消息类型。&quot;&quot;&quot;
+        return self._post_json(payload)
+
+    # -- 素材上传 -----------------------------------------------------------
+
+    def upload_media(self, file_path: str | Path, media_type: str = &quot;file&quot;) -&gt; str:
+        &quot;&quot;&quot;上传素材并返回 media_id（仅 3 天内有效，且只能被该机器人使用）。&quot;&quot;&quot;
+        if media_type not in (&quot;file&quot;, &quot;voice&quot;):
+            raise ValueError(&quot;media_type 只能是 file 或 voice&quot;)
+        p = Path(file_path)
+        if not p.is_file():
+            raise FileNotFoundError(&quot;文件不存在：%s&quot; % p)
+        size = p.stat().st_size
+        if size &lt;= MIN_UPLOAD_BYTES:
+            raise ValueError(&quot;文件必须大于 5 字节&quot;)
+        limit = MAX_VOICE_BYTES if media_type == &quot;voice&quot; else MAX_FILE_BYTES
+        if size &gt; limit:
+            raise ValueError(&quot;文件超过 %d 字节限制：%d&quot; % (limit, size))
+        if media_type == &quot;voice&quot; and p.suffix.lower() != &quot;.amr&quot;:
+            raise ValueError(&quot;语音仅支持 AMR 格式，且时长不超过 60s&quot;)
+        if self.dry_run:
+            return &quot;DRY_RUN_MEDIA_ID&quot;
+        url = &quot;%s?key=%s&amp;type=%s&quot; % (UPLOAD_URL, _url_key(self.webhook), media_type)
+        result = self._post_multipart(url, p, media_type)
+        media_id = result.get(&quot;media_id&quot;)
+        if not media_id:
+            raise WeComError(&quot;上传成功但未返回 media_id：%s&quot; % result)
+        return media_id
+
+
+# ---------------------------------------------------------------------------
+# 接口实例 / 命令行
+# ---------------------------------------------------------------------------
+
+def demo_payloads() -&gt; list[tuple[str, dict]]:
+    &quot;&quot;&quot;返回 8 类消息的请求体实例（用于文档与自测，不会发送消息）。&quot;&quot;&quot;
+    card = text_notice_card(
+        title=&quot;磁盘使用率告警&quot;,
+        url=&quot;https://example.com/dashboard&quot;,
+        desc=&quot;生产环境 /data 分区&quot;,
+        emphasis_title=&quot;92%&quot;,
+        emphasis_desc=&quot;当前使用率&quot;,
+        horizontal=[
+            {&quot;keyname&quot;: &quot;主机&quot;, &quot;value&quot;: &quot;node-01&quot;},
+            {&quot;keyname&quot;: &quot;详情&quot;, &quot;value&quot;: &quot;点击查看&quot;, &quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/dashboard&quot;},
+        ],
+        jumps=[{&quot;type&quot;: 1, &quot;url&quot;: &quot;https://example.com/dashboard&quot;, &quot;title&quot;: &quot;监控面板&quot;}],
+    )
+    news_card = news_notice_card(
+        title=&quot;本周运维周报&quot;,
+        image_url=&quot;https://example.com/banner.png&quot;,
+        url=&quot;https://example.com/weekly&quot;,
+        vertical=[{&quot;title&quot;: &quot;告警数&quot;, &quot;desc&quot;: &quot;较上周下降 12%&quot;}],
+    )
+    return [
+        (&quot;text&quot;, text_payload(&quot;福州今日天气：26℃，多云&quot;, [&quot;@all&quot;])),
+        (&quot;markdown&quot;, markdown_payload(&quot;**告警** &lt;font color=\&quot;warning\&quot;&gt;CPU 92%&lt;/font&gt;\n&gt; 请及时处理&quot;)),
+        (&quot;markdown_v2&quot;, markdown_v2_payload(&quot;# 周报\n| 项目 | 数值 |\n| --- | --- |\n| 告警 | 3 |&quot;)),
+        (&quot;image&quot;, {&quot;msgtype&quot;: &quot;image&quot;, &quot;image&quot;: {&quot;base64&quot;: &quot;&lt;BASE64&gt;&quot;, &quot;md5&quot;: &quot;&lt;MD5&gt;&quot;}}),
+        (&quot;news&quot;, news_payload([{&quot;title&quot;: &quot;运维知识库&quot;, &quot;description&quot;: &quot;常用命令速查&quot;,
+                                &quot;url&quot;: &quot;https://example.com/kb&quot;, &quot;picurl&quot;: &quot;https://example.com/kb.png&quot;}])),
+        (&quot;file&quot;, file_payload(&quot;&lt;MEDIA_ID&gt;&quot;)),
+        (&quot;voice&quot;, voice_payload(&quot;&lt;MEDIA_ID&gt;&quot;)),
+        (&quot;template_card / text_notice&quot;, template_card_payload(card)),
+        (&quot;template_card / news_notice&quot;, template_card_payload(news_card)),
+    ]
+
+
+def main(argv: list[str]) -&gt; int:
+    args = [a for a in argv if a != &quot;--dry-run&quot;]
+    dry_run = &quot;--dry-run&quot; in argv
+    cmd = args[0] if args else &quot;demo&quot;
+
+    if cmd == &quot;demo&quot;:
+        for name, payload in demo_payloads():
+            print(&quot;\n### %s&quot; % name)
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        print(&quot;\n（demo 仅打印请求体，未发送任何消息）&quot;)
+        return 0
+
+    if cmd == &quot;check&quot;:
+        try:
+            bot = WeComRobot(dry_run=dry_run)
+            print(&quot;webhook 已配置：%s&quot; % mask_webhook(bot.webhook))
+            return 0
+        except WeComError as e:
+            print(&quot;配置检查失败：%s&quot; % e)
+            return 1
+
+    try:
+        bot = WeComRobot(dry_run=dry_run)
+    except WeComError as e:
+        print(&quot;初始化失败：%s&quot; % e)
+        return 1
+
+    try:
+        if cmd == &quot;text&quot;:
+            result = bot.send_text(args[1], [&quot;@all&quot;] if &quot;--all&quot; in args else None)
+        elif cmd == &quot;markdown&quot;:
+            result = bot.send_markdown(args[1])
+        elif cmd == &quot;markdown-v2&quot;:
+            result = bot.send_markdown_v2(args[1])
+        elif cmd == &quot;image&quot;:
+            result = bot.send_image(args[1])
+        elif cmd == &quot;file&quot;:
+            result = bot.send_file(args[1])
+        elif cmd == &quot;voice&quot;:
+            result = bot.send_voice(args[1])
+        elif cmd == &quot;card&quot;:
+            result = bot.send_template_card(demo_payloads()[7][1][&quot;template_card&quot;])
+        else:
+            print(&quot;未知命令：%s&quot; % cmd)
+            print(&quot;可用：demo / check / text / markdown / markdown-v2 / image / file / voice / card&quot;)
+            return 2
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    except (IndexError, ValueError, FileNotFoundError, WeComError) as e:
+        print(&quot;发送失败：%s&quot; % e)
+        return 1
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main(sys.argv[1:]))
+</code></pre></div>
 <div class="pager"><a href="/notes/doc-f6f8edc524.html">&laquo; 从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（中）</a><span></span></div>
 </article>
 </main>
