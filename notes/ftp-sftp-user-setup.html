@@ -21,7 +21,7 @@
 <article class="article">
 <div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / 存储与工具</div>
 <h1 class="title">ftp 和 sftp 账号创建记录</h1>
-<p class="sub">存储与工具 · 发表于 <time datetime="2026-11-06T00:00:00.000Z">2026-11-06</time> · 约 7120 字 · <a href="/notes/ftp与sftp账号创建.md">查看 Markdown 原文</a></p>
+<p class="sub">存储与工具 · 发表于 <time datetime="2026-11-06T00:00:00.000Z">2026-11-06</time> · 约 6543 字 · <a href="/notes/ftp与sftp账号创建.md">查看 Markdown 原文</a></p>
 <div class="md-body"><h1>1、背景</h1>
 <p>需要新建一个evercm 账号用来ftp或者sftp</p>
 <pre><code class="language-bash">dnf install -y vsftpd
@@ -33,7 +33,6 @@ systemctl enable --now vsftpd
 <p>欧拉 2203 用 dnf，centos7 换 yum，别的发型包名字差不多。</p>
 <h1>2、目录权限</h1>
 <p>vsftpd 登录时要一路 chdir 到家目录，中间任何一级目录没有 <code>o+x</code>，客户端就报 <code>500 OOPS: chdir</code>，而且日志里看不出是哪一级。之前查了半天，最后是 <code>/data/eversec</code> 少了执行位。</p>
-<p>所以脚本里从 <code>/</code> 开始把每一级都过一遍，用 <code>stat -c '%A'</code> 取第 10 个字符判断 other 有没有 x，没有就补 <code>chmod o+x</code>。别一上来 <code>chmod -R 755 /data</code>，把整个数据目录的权限都改了不划算。</p>
 <pre><code class="language-bash">mkdir -p /data/eversec/data/ftp/evercm/autoUpgrade
 chown root:root /data/eversec/data/ftp/evercm
 chmod 755 /data/eversec/data/ftp/evercm
@@ -44,16 +43,14 @@ chmod 755 /data/eversec/data/ftp/evercm/autoUpgrade
 <h1>3、nologin 要写进 /etc/shells</h1>
 <pre><code class="language-bash">grep -qxF '/sbin/nologin' /etc/shells || echo '/sbin/nologin' &gt;&gt; /etc/shells
 </code></pre>
-<p>pam_shells 会拿用户的 shell 去 <code>/etc/shells</code> 里比对，没这一行的话密码输对了也是 <code>530 Login incorrect</code>。这个坑 ftp 和 sftp 都会踩，后面说 sftp 时还会提到。</p>
+<p>pam_shells 会拿用户的 shell 去 <code>/etc/shells</code> 里比对，没这一行的话密码输对了也是 <code>530 Login incorrect</code>。这个坑 ftp 和 sftp 都会踩</p>
 <h1>4、vsftpd.conf 重复项</h1>
 <p>需要补齐的三条：</p>
 <pre><code class="language-ini">chroot_local_user=YES
 anonymous_enable=NO
 allow_writeable_chroot=YES
 </code></pre>
-<p>直接 <code>echo &gt;&gt;</code> 追加会出现同一个 key 写好几行，vsftpd 取哪条不好说。脚本里的 <code>dedup_conf</code> 先 <code>grep -cE</code> 数一下，超过 1 行就全删再追加，只有 1 行且值一样就不动，值不一样再加一条（后写的生效）。这样重复跑脚本也不会把配置文件越撑越大。</p>
-<p>改完不用手动备份，先 <code>cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak</code> 。</p>
-<p>5、建用户</p>
+<h1>5、建用户</h1>
 <pre><code class="language-bash">useradd -d /data/eversec/data/ftp/evercm -s /sbin/nologin evercm
 </code></pre>
 <p><code>/sbin/nologin</code> 是为了不给 shell 登录权限，ftp 认证走 PAM 照样能用。脚本里用 <code>id evercm</code> 判了一下，用户已存在就跳过 useradd，只把目录属主和权限重新刷一遍，所以这个脚本是幂等的，跑几次都不会出事。</p>
@@ -89,12 +86,11 @@ Match User evercm
 <pre><code class="language-bash">chown root:root /data /data/eversec /data/eversec/data /data/eversec/data/ftp
 chmod 755 /data /data/eversec /data/eversec/data /data/eversec/data/ftp
 </code></pre>
-<p>前面 ftp 那步刚好把 <code>/data/eversec/data/ftp/evercm</code> 设成了 root:root 755，正好满足 chroot 下家目录不可写的要求，能写的还是 <code>autoUpgrade</code>。两边不用各建一套目录，这点当时还挺省事。</p>
+<p>前面 ftp 那步刚好把 <code>/data/eversec/data/ftp/evercm</code> 设成了 root:root 755，正好满足 chroot 下家目录不可写的要求。</p>
 <p><code>-d /evercm</code> 是登录后切初始目录，比较新的 OpenSSH 才支持，老版本去掉这个参数，客户端进去自己 <code>cd evercm</code>。<code>/sbin/nologin</code> 在 sftp 这边也能过，因为 <code>ForceCommand</code> 根本不启 shell，加上第 3 步已经把它写进 <code>/etc/shells</code>，PAM 不会拦。</p>
 <pre><code class="language-bash">sshd -t &amp;&amp; systemctl restart sshd
 sftp evercm@127.0.0.1
 </code></pre>
-<p><code>sftp</code> 能 <code>ls</code> 到 autoUpgrade 就对了，<code>ssh evercm@127.0.0.1</code> 应该直接被踢掉（ForceCommand 拦住了，不给交互式 shell）。sftp 出问题优先翻 <code>/var/log/secure</code>，里面会有 <code>bad ownership or modes for chroot directory</code> 这种明确的提示。</p>
 <h1>9、几个报错对一下</h1>
 <table>
 <thead>
