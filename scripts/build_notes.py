@@ -7,7 +7,11 @@ Source of truth : notes/*.md  (every md is discovered automatically)
 Generated       : notes/index.html, notes/<slug>.html, notes/doc.css, notes/doc.js
 Patched         : all Hexo-generated *.html (nav, article stream, counters), search.xml
 
-Usage: python scripts/build_notes.py
+IMPORTANT: requires Python 3.9+ (uses type annotations and Path.write_text(newline=)).
+    On Windows the `python` on PATH may be Python 2.7 -- use `py -3` instead:
+        py -3 scripts/build_notes.py
+    or simply run the wrapper: bash scripts/build_notes.sh
+    Dependency: pip install markdown   (already installed on Python 3.12 / 3.13)
 
 Daily workflow:
   1. Add / edit / delete a .md file under notes/
@@ -32,10 +36,19 @@ import datetime
 import hashlib
 import html
 import re
+import sys
 from pathlib import Path
 from urllib.parse import quote
 
-import markdown
+try:
+    import markdown
+except ImportError:
+    sys.stderr.write(
+        "缺少依赖 markdown。请先安装：\n"
+        "  py -3 -m pip install markdown\n"
+        "（注意：不要用 PATH 上的 python 2.7 运行本脚本）\n"
+    )
+    sys.exit(1)
 
 ROOT = Path(__file__).resolve().parent.parent
 NOTES = ROOT / "notes"
