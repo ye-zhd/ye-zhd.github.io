@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>frp内网穿透搭建 | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -121,14 +122,14 @@ remote_port = 60022
 <p>问题二：</p>
 <p>由于是宽带的公网ip映射的内网地址，防火墙nat策略需要开放端口:</p>
 <!-- 这是一张图片，ocr 内容为：回 H3C SECPATH F100-S- 网络 对象 策略 系统 监控 G3 概宽 导航 NAT内部服务器 请输入内部服务器名称 E新达 湾空统计数据 启用 取尚统计 X 册 禁用 金复制 安全策略 统计 安全策略 外网VRF 内邮服务量地址 ACL 内邮用 反向地 内邮酸 协议类型/外网络口 映射盛注 外网地址 名称 接口 接口接述 1/2.10.10.10 710711 2U101 GCI/4 公阿 浙止 公网 策略冗余分析 172.16.16.16 公网 TCP (6) /20189 20189 112512 公网 移动专线 GE1/0/2 禁止 信用 策略命中分析 公网 172.16.16.16 20190 TCP (6)/20190 26 112.512 移助专线.. GE1/0/2 禁止 公网 安全防护 112.51.2 22 319232 公网 开 TCP (6) /22022 172.16.16.1 公网 GE1/0/2 移动专线... 启用否 禁止 22 公网 172.16.7 GE1/0/2 92586 移动专战,. 112.512 开... TCP (6) /22023 启用否 公网 禁止 .NAT快速配置 22 78312 开... 公网 172.16.16.8 112.51.2 GE1/0/2 移动专线... 公网 启用  否 TCP (6) /22024 禁止 NAT策略 22 开... 公网 21 172.16.16 GE1/0/2 112.51.2 移动专线 百 TCP (6)/22025 公阿 启用 禁止 NAT动态转换 开. 60 22040 112.51.2 公网 172.16.16.8 GE1/0/2 TCP (6)/22040 移动专线... 公网 西 启用 禁止 NAT内部服务器 30 112.51.2.. 公网 3389 GE1/0/2 10.20.3.200 否 TCP (6)/22200 移动专线... 公网 禁止 启用 策略配置 386 22 11251.2 否 TCP (6) /22201 公网 公网 GE1/0/2 10.20.3.201 移动专线... 禁止 启用 服务器组 公网 3389 10.20.3.202 GE1/0/2 否 112.512 移动专线 启用 禁止 TCP (6) / 22202 公网 NAT静态转换 公网 香 10.20.3.203 112.51.2 3389 GE1/0/2 公网 启用 移动专业... TCP (6) /22203 禁止 NAT44动态转换 公网 63 GE1/0/2 172.16.16.16 30040 112.51.2 移动专线 TCP(6)/30040 启用否 公网 禁止 NAT444静态转换 18 公网 GE1/0/2 移动专线... 30099 112.51.2 TCP (6)/30099 172.16.16.16 禁止 公网 NAT高级设置 290 10.20.3.201 公网 TCP (6) /53818 FRP 53818 移动专线... GE1/0/2 53818 房用 112.51.2 公网 禁止 ?应用审计 3 公网 TCP (6)/60022 60022 10.20.3.201 GE1/0/2 公网 112.512 FRP 60022 否 移动专线... 禁止 启用 @吊带宽管理 1 FRP 63389 63389 GE1/0/2 公网 公网 TCP (6)/63389 10.20.3.201 否 112.51.2 移动专线... 禁止 启用 @负载均衡 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1675216703631-b8bd56cd-f785-49cb-bfbc-466ac84f2f94.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1675216703631-b8bd56cd-f785-49cb-bfbc-466ac84f2f94.png" /></p>
 <h3>3、连接与带宽查看</h3>
 <blockquote>
 <p>sever端的页面查看带宽占用：
 </p>
 </blockquote>
 <!-- 这是一张图片，ocr 内容为：使用FRP搭建内网穿透 YHJ的博客 登录-华为统一运维审计 FRPS DASHBOARD 图文 不安全 10.20.3.201:7500/STATIC/#/PROXIES/TCP 更新 工具箱-程序员编程... IOS手机端网页测试 系统镜像下载 公司 LUCKY YE-自闭~ BUTTERFLY PYTHON教程-廖雪峰 PROMETHEUS JAVAWEB教程目录... GIT 克隆别人代码提... FRP OVERVIEW TRAFFIC OUT TRAFFIC IN PORT STATUS CONNECTIONS NAME PROXIES 4 53818 4.15MB 214KB ONLINE TCP TCP O 0 BYTES 63389 0 BYTES TCP2 ONLINE UDP 5KB 5KB 60022 TCP3 ONLINE HTTP HTTPS -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1675216721652-35f4204b-9a8e-4c9a-ab11-2324d3550a32.png" /></p></div>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1675216721652-35f4204b-9a8e-4c9a-ab11-2324d3550a32.png" /></p></div>
 <div class="pager"><a href="/notes/xmrig-mining-virus.html">&laquo; 服务器中xmrig挖矿病毒排除分析</a><a href="/notes/lvs-keepalived-nginx.html">lvs+keeplived+nginx &raquo;</a></div>
 </article>
 </main>

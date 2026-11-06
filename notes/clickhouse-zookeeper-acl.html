@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>clickhouse的zookeeper升级与配置acl账号 | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -98,7 +99,7 @@ chkconfig --list
 <h2>3.1、背景</h2>
 <p><font style="color:rgb(64, 64, 64);">由于生产环境使用clickhouse集群依赖的zookeeper集群并未设置访问权限控制,所以被安全部门通报漏洞</font></p>
 <!-- 这是一张图片，ocr 内容为：AI APACHE ZOOKEPER安全满河(CVE-2023-44981) AEARHEZODEREPOR是发展可能保(4PACHO)基金会约一个软件项目,它能备为大型分布系统于通过的有效观要驾.同步预系和金省连管要项目. 详细描述 APACH:ZOOKSEPS12前,3.3.832前,3.72之前版本存在安金据何,该后何识于如果在 厂商补丁: 解决办法 园 目前厂商已发布升级补丁以修复局河,补丁获取链接 HTTPS//LISTS APACHE.ORG /THREAD/WFOYRKB4DG1942Z1074KD8NYCGBPGM5B 威胁分伯 9.1 晋 危险报件 包 发现日期 CVE-2023-44981 素A CVE编号 CNNVD-202310-856 CNNVD编号 茶 CNCVE编号 CNCVE-202344981 ZOOKEEPER来规权访问[原理扫描] 详细描述 ZOOKAEPGR的目标就是对统好复杂总出错的关键服务,将低单局周的投口和生阴兴效,功能是进的系统提供会展户. 在温常悟品下.200LSER允许来经授权的访问. 为ZOOKESPER国程应打方向文号.注意,本酒样检到/节系列SD议层,国比高要而目/有而时仅限,才可眼新免本面件相出标为. 解决办法 方式一: 1) 增加一个认还用户 ADDAUTH DIGEST 用户名:富玛明文 EG. ADDAUTH DIGEST USERLAPSWORD1 2) 设置权限 SETADL/PATH AUTH 用户名:识明文:权限 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1722924760598-8f1060c6-5193-47ad-b471-182df82b1dc0.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1722924760598-8f1060c6-5193-47ad-b471-182df82b1dc0.png" /></p>
 <h2>3.2、zookeeper配置</h2>
 <h3><font style="color:rgb(64, 64, 64);">3.2.1 、zookeeper身份的认证有4种方式：</font></h3>
 <p><font style="color:rgb(64, 64, 64);"></font></p>
@@ -268,7 +269,7 @@ setAcl /  digest:clickhouse:tt6A3H7+sjjOILlLMvi9Zbv7+ZE=:crwda
 <h1>5、添加账号后如何操作ck路径</h1>
 <p>添加账号后直接登录执行ls 会提示权限拒绝。再执行<code>addauth digest clickhouse:myPassword</code>即可操作带有权限的路径</p>
 <!-- 这是一张图片，ocr 内容为：WELCOME TO ZOOKEEPER! [MAIN-SENDTHREAD(LOCALHOST:2181):CLIENTCNXNSSENDTHREAD@1177] OPENING SOCKET CONNECTION TO SERVER LOCALHO 2024-08-06 INFO [MYID:LOCALHOST:2181] 15:03:26,617 SASL CONFIG STATUS:WILL NOT ATTEMPT TO AUTI 2024-08-06 15:03:26,617 INFO [MAIN-SENDTHREAD(LOCALHOST:2181):CLIENTCNXNSSENDTHREADAI179) [MYID:LOCALHOST:2181] [MAIN-SENDTHREAD(LOCALHOST:2181):CLIENTCNXNSSENDTHREADQ1011] 2024-08-06 15:03:26,622 [MYID:LOCALHOST:2181] INFO SOCKET CONNECTION ESTABLISHED, INITIATING S SERVER:LOCALHOST/0:0:0:0:0:0:0:1:2181 JLINE SUPPORT IS ENABLED [NAIN-SENGTHREADCTOCATHOST;ZZB1V:CTIENTCNXNSSENDTHRE3DETHRE3DETE ON ESSION ESTABLISHMENT CON SERVER 1 2024-08-06 15:03:26,630 [MYID:LOCALHOST:2181] - INFO - OX200B45B555A0012, NEGOTIATED TIMEOUT - 3000 WATCHER:: WATCHEDEVENT STATE:SYNCCONNECTED TYPE:NONE PATH:NULL [ZK:LOCALHOST:2181(CONNECTED) 0] 1S / INSUFFICIENT PERMISSION : / ADDAUTH DIGEST CLICKHOUSE:EVERSEC123098 [ZK:LOCALHOST:2181(CONNECTED) LS/ [ZK:LOCALHOST:2181(CONNECTED) [CLICKHOUSE,ZOOKEEPER] [ZK: LOCALHOST:2181(CONNECTED) 3] -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1722927909215-322879d6-a1d9-4b8f-92c3-a07853882bbd.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1722927909215-322879d6-a1d9-4b8f-92c3-a07853882bbd.png" /></p>
 <h1>6、zk的acl权限设置错误问题解决</h1>
 <p>背景：由于个人设置目录的时候把setAcl /  digest:clickhouse:eversec123098:crwda auto写成了digest</p>
 <p>一开始配置文件设置skipAcl=yes 可以恢复成无acl模式但是还是不能修改目录权限。</p>

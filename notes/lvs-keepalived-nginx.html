@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>lvs+keeplived+nginx | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -76,7 +77,7 @@ sed -i '/net.ipv4.ip_forward/ s/\(.*= \).*/\11/' /etc/sysctl.conf
 </p>
 </blockquote>
 <!-- 这是一张图片，ocr 内容为：[ROOT@EVERDC02 KEEPALIVED]# IPVSADM SERVER VERSION 1.2.1 (SIZE:4096) IP VIRTUAL LOCALADDRESS:PORT SCHEDULER ` FLAGS PROT REMOTEADDRESSPORT WEIGHT ACTIVECONN INACTCONN FORWARD [ROOT@EVERDCO2 KEEPALIVED]# IPVSADM -LN IP VIRTUAL SERVER VERSION 1.2.1 (SIZE-4096) PROT LOCALADDRESS:PORT SCHEDULER FLAGS FORWARD WEIGHT A REMOTEADDRESSPORT T ACTIVECONN INACTCONN LSMOD IP_VS [ROOT@EVERDC02 KEEPALIVED]# GREP 12600 O TP_VS_RR 12697 O IP_VS_WRR 145497 4 RR,IP_VS_WRR 1P-VS_ 1P_VS 133095 1 1P_VS NF_CONNTRACK 3 XFS,IP_VS,NF_CONNTRACK 12644 LIBCRC32C [ROOT@EVERDCO2 KEEPALIVED]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812784119-8c0882e9-d948-466f-94f7-cd0101d92690.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812784119-8c0882e9-d948-466f-94f7-cd0101d92690.png" /></p>
 <h3>nginx部署脚本</h3>
 <pre><code class="language-shell">###Nginx升级包修改变量
 pack_path=/home/nginx_install
@@ -395,16 +396,16 @@ vrrp_instance VI_1 {
 </code></pre>
 <p>主节点上的ip查看</p>
 <!-- 这是一张图片，ocr 内容为：[ROOT@EVERDC02 KEEPALIVED]# IP A LI: LO: <LOOPBACK,UP,LOWER`UP>'MTU 65536 QDISC NOQUEUEUE STATE UNKNOWN GROUP DEFAULT QLEN 1000 1INK/LOOPBACK 00:00:00:00:00:00 BRD 00:00:00:00:00:00 INET 127.0.1/8 '8 SCOPE HOST LO R PREFERRED_LFT FOREVER FOREVERPRE VALID_LFT F /128 SCOPE HOST INET6 :://12 VALID_1FT FOREVER PREFERRED_LFT FOREVER 12: ENS192: <BROADCAST,MULTICAST,UP;LOWERJUP> MTU 1500 QDISC MQ STATE UP GROUP DEFAULT QLEN 1000 LINK/ETHER 00:0C:29:13:09:19 BRD FF:FF:FF:FF:FF:FF:FF BRD 10.20.3.255 SCOPE QLOBAL NOPREFIXROUTE ENS192 INET 10.20.3.108/24 BR VALID_LFT FOREVER PREFERRED_LFT FOREVER .120/32 SCOPE GLOBAL ENS192 INET 10.20. LFT FOREVER PREFERRED_LFT FOREVER VALID_ 2F89:FD4C:EBO1:A35E/64 SCOPE LINK NOPREFIXROUTE INET6 FE80: VALID_LFT FOREVER PREFERRED_LFT FOREVER FROOT@EVERDC02 K # 2 KEEPALIVED -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812825911-63c6f6d3-5b36-457e-af2c-16d1cfa06740.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812825911-63c6f6d3-5b36-457e-af2c-16d1cfa06740.png" /></p>
 <p>备节点上的ip查看</p>
 <!-- 这是一张图片，ocr 内容为：LAST LOGIN: TUE JUL 12 16:27:57 2022 [ROOT@EVERDC03~]# IP A 1: 10: <LOOPBACKIUP,LOWER UP> MTU 65536 ADISC NOQUEUEUEUE STATE UNKNOWN GROUP DEFAULT QLEN 1000 </10OPBACK 00:00:00:00:00:00 BRD 00:00:00:00:00:00:00 7INK/7 INET 127.0.0.1/8 SCOPE HOST LO VALID_LFT FOREVER PREFERRED_LFT FOREVER INET6 ::1/128 SCOPE HOST VALID_LFT FOREVER PREFERRED_LFT FOREVER 12: ENSI92: <EROADCAST,MULTICAST.UP;LOWERJUP> MTU 1SOO GDISC MQ STATE UP GROUP DEFAULT QLEN 1000 LINK/ETHER 00:0C:29:DE:6F:10 BRD FF:FF:FF:FF:FF:FF:FF INET 10.20.3.109/24 BRD 10.20.3.255 SCOPE GLOBAL NOPREFIXROUTE ENS192 VALID_LFT FOREVER PREFERRED LFT FOREVER INET6 FE80::7EF:321:7809:3579/64 SCOPE LINK NOPREFIXROUTE VALID_1FT FOREVER PREFERRED_LFT FOREVER [ROOT@EVERDC03 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812834874-55ee8055-4b4a-4684-8551-6ec29a75eaf9.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812834874-55ee8055-4b4a-4684-8551-6ec29a75eaf9.png" /></p>
 <p>模拟主节点挂了验证：</p>
 <!-- 这是一张图片，ocr 内容为：伦文办口 10.20.3.120 更新 不安全 GIT克隆别人代码提.... JAVAWEB款程目录... BUTTERFLY JCA中台账号权限 工具箱-程序员编程... LUCKY YE-自闭~ 公司 阿里云镜像下载 IOS手机缩网页测试 PYTHON教程-座雪峰 HELLO,NGINX! SERVER XXXX@10.20.3.108 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812850849-7d6de702-3a31-4670-a66d-8e2c2c5c5716.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812850849-7d6de702-3a31-4670-a66d-8e2c2c5c5716.png" /></p>
 <p>此时关掉10.20.3.108上面的keepalived验证</p>
 <!-- 这是一张图片，ocr 内容为：9安装NG C(23条消 C(23条消 (23条消 C(23条元 C(23条洋 X 登录`X (23条件 营 NGINX 营安装IP 10.20.1 不安全|10.20.3.120 C 更新 LUCKY YE-自闭~ JAVAWEB教程目录... 工具箱-程序员编程.... GIT 克隆别人代码提... IOS手机端网页测试 公司 阿里云镜像下载 FJCA中台账号权限 PYTHON数程-廖雪峰 BUTTERFLY HELLO,NGINX! SERVER XXXX@10.20.3.109 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812882372-6300dae6-be6b-47aa-a7b9-b619d0259469.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812882372-6300dae6-be6b-47aa-a7b9-b619d0259469.png" /></p>
 <h3><strong>nginx反向代理</strong></h3>
 <blockquote>
 <p>nginx.conf
@@ -598,7 +599,7 @@ exit 0
 </code></pre>
 <p>ip a 查看结果</p>
 <!-- 这是一张图片，ocr 内容为：[ROOT@EVERDC02 KEEPALIVED]# IP A LI: LO: CLOOPBACK.UP,LOWER[UP> MTU 65536 QDISC NOQUEUEUE STATE UNKNOWN GROUP DEFAULT QLEN 1000 LINK/LOOPBACK 00:00:00:00:00:00 BRD 00:00:00:00:00:00:00  INET 127.0.0.1/8 SCOPE HOST LO ALID_LFT FOREVER PREFERRED_LFT FOROVER INET 10.20.3.120/32 BRD 10.20.3.120 SCOPE G LOBAL LO:0 VALID_LFT FOREVER PREFERRED LFT FOREVER INET6::1/128 SCOPE HOST VALID_LFT FOREVER PREFERRED LFT FOREVER 2: ENS19 ENSI9Z: <BROADCAST,MULTICAST,UP,LOWER-UP),MTU 1500 GDISC MA STATE UP GROUP DEFAULT QLEN 1000 1INK/ETHER 00:0C:29:13:09:19 BRD F午:F午:F午:FF:FF:FF INET 10.20.3.108/24 BRD 10.20.3.255 SCOPE GLOBAL NOPREFIXROUTE ENS192 VALID_LFT FOREVER PREFERRED_LFT FOREVER INET 10.20.3.120/32 SCOPE GLOBAL ENS192 VALID_LFT FOREVER PREFERRED LFT FOREVER INET6 FE80::2F89:FD4C:EB01:A35E/64 SCOPE LINK NOPREFIXROUTE VALID_LFT FOREVER PREFERRED_LFT FOREVER [ROOT@EVERDCO2 KEEPALIVED]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812915850-9d81ee10-86f8-4c72-8959-45f1511198cf.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812915850-9d81ee10-86f8-4c72-8959-45f1511198cf.png" /></p>
 <p>10.20.3.108 主节点 /usr/local/etc/keepalived/keepalived.conf</p>
 <pre><code class="language-plain">! Configuration File for keepalived
 
@@ -723,20 +724,20 @@ virtual_server 10.20.3.120 80 {  #设置虚拟服务器，需要指定虚拟IP�
 </code></pre>
 <p>使用 ip add 查看是否绑定 VIP ，tail /var/log/messages 查看服务器状态是不是 MASTER ，检测节点服务器有没有连接成功信息：</p>
 <!-- 这是一张图片，ocr 内容为：15 12:05:41 EVERDCO2 KEEPALIVED[17192]: STARTUP COMPLETE 15 12:05:41 EVERDCO2 KEEPALIVEDJHEALTHCHECKERS[17293]: GAINED QUORUM 14031 <- 2 FOR VS VS [10.20:3,130]:TCP:80 15 32:0S:41 EVERDCO3 KEEPALIVED JTHEALTHECKERSF27393]: ACTIVATING HEAL THCHECKER FOR SERVICE [333333 3.108]:TCP:80 FOR VS [10.20.3.120]:TCP:80 AP:80 FOR VS [10.20.3.120]:TCP:80 S 12:05:42 EVERDCO2 KEEPALIVED_VRRP(17194]: (VI_1) RECE M 10.20.3.109 - DISCARDING I_1) RECEIVED LOWER PRIORITY (90) 0) ADVERT  FROM 10 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812938628-d351fc4a-ef46-4886-8b2a-a5afad585b3c.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812938628-d351fc4a-ef46-4886-8b2a-a5afad585b3c.png" /></p>
 <pre><code class="language-shell">ipvsadm -Ln
 </code></pre>
 <!-- 这是一张图片，ocr 内容为：[ROOT@EVERDCO2 KEEPALIVED]# IPVSADM -LN LIP VIRTUAL SERVER VERSION 1.2.1 (SIZE-4096) PROT T LOCALADDRESS:PORT SCHEDULER FLAGS FORWARD WEIGHT ACTIVECONN INACTCONN REMOTEADDRESS:PORT 10.20.3.120:80 RR TCP ROUTE 10.20.3.108:80 5 10.20.3.109:80 ROUTE [ROOT@EVERDCO2 KEEPALIVED]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812951617-e08379d2-d66e-4777-8ca2-ffb2b2b37ab6.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812951617-e08379d2-d66e-4777-8ca2-ffb2b2b37ab6.png" /></p>
 <p>是因为设置了 persistence_timeout 120 这个参数吗？  </p>
 <h2>正因为设置了 session 保持时间，所以持续的访问被分配到了某一台节点服务器。</h2>
 <h2>现在把此参数注释掉，测试一次（ 记得重启 keepalived ）。</h2>
 <p>ipvsadm -Ln</p>
 <!-- 这是一张图片，ocr 内容为：[ROOTQEVERDCO2 KEEPALIVED]# IPVSADM -LN R VERSION 1.2.1 (SIZE-4096) IP VIRTUAL SERVER PROT LOCALADDRESS:PORT SCHEDULER FLAGS FORWARD WEIGHT ACTIVECONN INACTCONN REMOTEADDRESS:PORT TCP 10.20.3.120:80 RR 12 11 10.20.3.108:80 ROUTE 21 AI  -> 10.20.3.109:80 ROUTE [ROOT@EVERDCO2 KEEPALIVED]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812985565-f0497568-a20c-43fc-b8c0-560cdd654e48.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812985565-f0497568-a20c-43fc-b8c0-560cdd654e48.png" /></p>
 <p>curl测试结果</p>
 <!-- 这是一张图片，ocr 内容为：~]# CURL -S HTTP://10.20.3.120/ [ROOT@EVERDCO1 HELLO, NGINX! SERVER XXX@10.20.3.108 ~]# CURL -S  HTTP://10.3.120/ [ROOT@EVERDCO1 HELLO, NGINX! SERVER XXX@10.20.3.109 CURL -S HTTP://10.20.3.120/ [ROOT@EVERDC01 #[` HELLO, NGINX! XXX@10.20.3.108 SERVER ~]# CURL HTTP://10.20.3.120/ [ROOT@EVERDC01 -S -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812993914-744e2b7d-848c-4774-b406-f84edeeda307.png" /></p></div>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1676812993914-744e2b7d-848c-4774-b406-f84edeeda307.png" /></p></div>
 <div class="pager"><a href="/notes/frp-intranet-penetration.html">&laquo; frp内网穿透搭建</a><a href="/notes/docker-elk.html">docker搭建ELK日志监控系统 &raquo;</a></div>
 </article>
 </main>

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（中） | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -156,7 +157,7 @@
 <p><font style="color:rgb(60, 60, 67);">Harbor 版本发布页面 :</font><font style="color:rgb(60, 60, 67);"> </font><a href="https://github.com/goharbor/harbor/releases"><font style="color:rgb(0, 167, 213);">https://github.com/goharbor/harbor/releases</font></a></p>
 <p><font style="color:rgb(60, 60, 67);">下载要安装版本的在线或离线安装程序。</font></p>
 <!-- 这是一张图片，ocr 内容为：BUMP TRIVY TO VO:71.1 AND TRIVY ADAPTER TO VO.37.1 BY @STONEZDJ IN #23386 RELEASE LIST BUMP TRIVY ADAPTER VERSION TO VO.37.1 BY @STONEZDJ IN #23422 BUMP BASE PHOTON OS IMAGE BY @STONEZDJ IN #23424 V2.15.2 SYNC PACKAGE-LOCKJSON IN UI BY @STONEZDJ IN #23431 V2.15.2-RC3 BUMP TRIVY(0.72.0)AND TRIVY ADATPER(O.38.0)BY @STONEZDJ IN #23480 V2.15.2-RC2 BUILD(REGISTRY):USE STABLE REGISTRY SOURCE TAG V2.8.3-HARBOR.1 BY @CHLINS IN #23482 V2.15.2-RC1 UPDATE BASE IMAGE BY @STONEZDJ IN #23485 V2.14.4 OTHER CHANGES V2.14.4-RC1 ? (CHERRY-PICKI SUPPORT CONFIGURABLE PIPINDEX URL FOR SWAGGER LLENT BUILD ($23241) @STONEZDJ IN #2324 V2.15.1  BUILD:USE DEV-LEGACY TAGS TO DECOUPLE 2.15 BUILDS FROM MAIN BY @WY65701436 IN #2336 IN #23360 V2.15.1-RC2 [BACKPORT 2.15.0) TESTUL):FXUI ROBOT TEST CASES FOR ANGULAR AND CLARITY UPGRADE BY @FIONA-XIE IN #233 V2.15.1-RC1 : [CHERY-PICK) TEST(U):ADD RETRY FOR GET HARBOR CA TO IMPROVE STABILITY($23396) BY @FIONA-XIE IN #234 V2.15.0 DOWNGRADE NODE-RELEASE TO 2.0.48 FOR BUILD COMPATIBILITY BY BY @STONEZDJ IN #23432 FULL CHANGELOG:V2.15.1...V2.15.2 NEXT PREVIOUS CONTRIBUTORS VAD1MO,STONEZDJ,AND 4 OTHER CONTRIBUTORS ASSETS 7 HARBOR-OFFLINE-INSTALLER-V2.15.2.TGZ 2 WEEKS AGO 696 MB SHA256:67517E0BA4A3F9DB9_ 10.2KB HARBOR-OFFLINE-INSTALLER-V2.15.2.TGZ.SIGSTORE.JSON SHA256:FDA352108BD8207AD.. 2 WEEKS AGO HARBOR-ONLINE-INSTALLER-V2.15.2.TGZ SHA256:88F6A7436B31890E8- 11.5KB 2 WEEKS AGO SHA256:4B08E33238247C65C." ( 10.1 KB HARBOR-ONLINE-INSTALLER-V2.15.2.TGZ.SIGSTORE.JSON 2 WEEKS AGO SHA256:C730145C8614480AC- 141 BYTES MD5SUM 2 WEEKS AGO SOURCE CODE(ZIP) 2 WEEKS AGO -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783932658701-751ac531-7998-42f2-a43e-edf04be9c73b.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783932658701-751ac531-7998-42f2-a43e-edf04be9c73b.png" /></p>
 <p><font style="color:rgb(60, 60, 67);">离线版本</font></p>
 <pre><code class="language-plain">tar xzvf harbor-offline-installer-v2.15.2.tgz
 </code></pre>
@@ -249,17 +250,17 @@ vim harbor.yml                                   # 修改配置文件
 </code></pre>
 <p><strong><font style="color:rgb(60, 60, 67);">配置的文件的修改如下所示：<br />
 </font></strong><strong><font style="color:rgb(60, 60, 67);"> </font></strong><!-- 这是一张图片，ocr 内容为：1001@IOCALHOST: EVERSEC@LO # CONFIQURATION FILE OF HARBOR # THE IP ADDRESS OR HOSTNAME TO ACCESS ADMIN UI AND REGISTRY SER RY SERVICE. CLIENTS. D BY EXTERNAL 127.0.0.1, BECAUSE HARBOR NEEDS TO BE ACCESSED BE # DO NOT USE IOCAINOST OR HOSTNAME:10.20.3.112 修改主机名称,不要用LOCALHOST或者127.0.1 # HTTP RELATED CONFIG HTTP: # PORT FOR HTTP, DEFAULT IS 80. IF HTTPS ENABLED, THIS PORT WILL REDIRECT TO HTTPS PORT PORT:80 # HTTPS RELATED CONFIG HTTPS: DEFAULT IS 443 # HTTPS PORT FOR HARBOR, PORT:443 KEY FILES FOR NGINX AND CER # TNE PATN OF HTTPS证书位置 DATA/CERT/YZD.COM.CRT CERTIFICATE://DA PRIVATE_KEY: /DATA/CERT/YZD.COM.KEY # ENABLE STRONG SSI CIPHERS (DEFAULT: FALSE) #ST STRONG_SSL_CIPHERS: FALSE SET IPV4 ENABLED ONLY BY DEFAULT IF THIS BLOCK IS NOT CONFIGURED # HARBOR WILL 并并并并并并并并并 OTHERWISE, #                                                                  TO CONFIGURE YOUR OWN SLEASE UNCOMMENT THIS BLOCK TO CO IP_FAMILY STACKS PLEAS IP_FAMILY: IT AFFECTED THE NGINX RELATED COMPONENT # IPVGENABLED SET TO TRUE IF IPVE IS ENABLED IN DOCKER HETWORK, CURRENTLY IPV6: ENABLED:FALSE # 1PVAENABLED SET TO TRUE BY DEFAU1T, CURTENTIY 1T AFFECTED THE NGLUX FELATED COMPONENT IPV4: ENABLED: TRUE ABLE TLS COMMUNICATION BETWEEN ALL HARBOR COMPONENTS NG WILL ENABLE #UNCOMMENT FOLLOWING 井井井井井井 INTERNAL_TLS: INTERNAL TLS IS ENABLED # SET ENABLED TO T TRUE MEANS ENABLED:TRUE # PUT YOUR CERT AND KEY FILES ON DIR DIR: /ETC/HARBOR/TLS/INTERNAL E UNCOMMENT EXTERNAL_URL IF YOU WANT TO ERE ENABLE PROXY EXTERNAL 井井井 AND WHEN IT ENABLED THE HOSTNAME WILL NO LONGER USED EXTERNAL_URL:HTTPS://REG.MYDOMAIN.COM:8433 # THE INITIAL PASSWORD OF HARBOR ADMIN # IT ONLY WORKS IN FIRST TIME TO INSTALL HARBOR "HARBOR.YML" 329L, 14652B -->
-<img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783937856418-6b96daae-6215-4897-a226-3199686468c2.png" /></p>
+<img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783937856418-6b96daae-6215-4897-a226-3199686468c2.png" /></p>
 <p><strong><font style="color:rgb(60, 60, 67);">默认密码修改：</font></strong></p>
 <!-- 这是一张图片，ocr 内容为：_URL: HTTPS://REG.MYDOMAIN.COM:8433 EXTERNA : THE INITIAL PASSWORD OF HARBOR ADMIN N FIRST TIME TO INSTALL HARBOR IT ONLY WORKS IN FI # REMEMBER CHANGE THE ADMIN PASSWORD FROM UI AFTER LAUNCHING HARBOR. # REMEMB HARBOR_ADMIN_PASSWORD: HARBOR12345 HARBOR DB CONFIGURATION -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783937881509-7187b592-1d47-4225-a92d-405839f3983a.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783937881509-7187b592-1d47-4225-a92d-405839f3983a.png" /></p>
 <p><strong><font style="color:rgb(60, 60, 67);">启动关闭命令：</font></strong></p>
 <pre><code class="language-bash">docker-compose -f docker-compose.yml up -d            启动 Harbor
 docker-compose -f docker-compose.yml stop             关闭 Harbor
 </code></pre>
 <p><strong><font style="color:rgb(60, 60, 67);">访问Harbor</font></strong></p>
 <!-- 这是一张图片，ocr 内容为：ALLPS://10.20.3.112/HARBOR/PROJECTS 脂 着歌放院器CHROM... MYSQL数据识到灰... 'PORTAINER 容器钠... 从零搭建企业级CV/... 所有书签 全部扫错差 默认扫描器已安装. 装.获取扫描器安装帮助,请查看 文档. HARBOR 搜索HARBOR... ADMIN 品项目 项目 已使用的配额 项目 镜像仓库 军日志 私有 私有 品 系统管理 公开 公开 BYTE 路 用户管理 总计 总计 机器人账户 仓库管理 新建项目 所有项目 心复制管理 44 提像仓库数 类型 项目名称 分布式分发 0 公开 项目管理员 2026/7/3 18:26 项目 LIBRARY 标签 1-1共计1条记录 页新大小    项目定额 审查服务 画清理服务 @任务中心 公配置管理 头浅色主题 # HARBOR API V2.0 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783936148560-911fd5a1-7b93-49b7-9a08-99b1583050cc.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783936148560-911fd5a1-7b93-49b7-9a08-99b1583050cc.png" /></p>
 <p><strong><font style="color:rgb(60, 60, 67);">Harbor设置开机自启动</font></strong></p>
 <pre><code class="language-shell">sudo vim /etc/systemd/system/harbor.service
 
@@ -288,13 +289,13 @@ WantedBy=multi-user.target
 <h3><font style="color:rgb(60, 60, 67);">GUI界面使用</font></h3>
 <p>创建用户</p>
 <!-- 这是一张图片，ocr 内容为：按索HARBOR... ADMIN 用户管理 操作Y 创建用户 设置为管理员 创建用户 注册时间 用户名 2026/7/13 19:43 YE-EVERSEC 用户名 页面大小 15 1-1共计1条记录 邮箱 123@1QQ.COM 全名 密码 确认密码 注释 取消 确定 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940588314-1bae6d5a-f894-434d-b8dd-077eb952ded8.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940588314-1bae6d5a-f894-434d-b8dd-077eb952ded8.png" /></p>
 <p>新建项目</p>
 <!-- 这是一张图片，ocr 内容为：然认扫描器已安装.获取扫描器安装帮助,访查者文指. 全部扫描蒸 ADMIN 搜索 HARBOR. HARBOR 品项目 项目 镜像仓库 项目 已使用的配额 华日志 私有 私有 OOO 新建项目 品系统管理 公开 公开 BYTE 照用户管理 总计 总计 总机器人账户 项目名称 中仓库管理 所有项目 V C 公开 6复制管理 访问级别(I) 创建对网 访同级别 镜像仓库数 项目名移 分布式分发 10 项目配新限制 公开 2026/7/13 18:26 标签 贡画大小 15 1-1共计1条记录 2项目定额 镜像代理 申查服务 曲清理服务 @任务中心 急配置管理 确定 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940525920-4f24596e-f989-48e1-88b7-575244f673ec.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940525920-4f24596e-f989-48e1-88b7-575244f673ec.png" /></p>
 <p>点击新建的项目-&gt;点击推送命令可以<font style="color:rgb(34, 34, 34);background-color:rgba(255, 255, 255, 0.9);">帮助命令</font></p>
 <!-- 这是一张图片，ocr 内容为：默认扫描器已安装.获取扫描器安装帮助,请查看文指. 全部扫描器 ADMIN HARBOR 搜索 HARBOR 项目 品项目 访问级别 已使用的配额 宰日国 品 EVERSEC 系统管理员 OBYTE OF 10GIS 公开 %系统管理 密用户管理 &机器人账户 日志 机器人账户 配置管理 概要 标签 扫描器 成员 镜像仓库 P2P 预热 WEBHOOKS 策路 推送命令 仓库管理 C 复制管理 C 川路 删除 推送命令 DOCKER 推送命令 分布式分发 在项目中标记锁像: 名称 ARTIFACLS O 标签 DOCKER TAG SOURCE IMAGE[:TAG]10.20.3.112/EVERSEC/REPOSITORY[:TAG] 项目定额 推送镜像到当前项目: O审查服务 DOCKER PUSH 10.20.3.112/EVERSEC/REPOSITORY[:TAG] 未发 消理服务 PODMAN 推送命令 @任务中心 页面大小  5 0条记录 推送镜像到当前项目: 感配置管理 PODMAN PUSH IMAGE_ID 10.20.3.112/EVERSEC/REPOSITORY[:TAG] HELM 推送命令 在项目中打包CHART HELM PACKAGE CHART_PATH 推送CHART到当前项目 HELM PUSH CHART_PACKAGE OCI://10.3.112/EVERSEC CNAB推送命令 推送CNAB到当前项目 火浅色主题 CNAB-TO-OCI PUSH CNAB PATH -TARGET 10.3.112/EVERSEC/REPOSITORY[:TAG] HARBOR API V2.0 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940647797-fbe42b52-3c04-4a70-ade8-66f644dd0eb1.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783940647797-fbe42b52-3c04-4a70-ade8-66f644dd0eb1.png" /></p>
 <p>在10.20.3.110使用docker命令登录：</p>
 <pre><code class="language-shell">[root@localhost ~]# docker login yzd.com
 Username: ye-eversec
@@ -372,13 +373,13 @@ unauthorized: unauthorized to access repository: eversec/web-alpine, action: pus
 </code></pre>
 <p>这里报错了把前面新建的用户加到新建的项目组里面</p>
 <!-- 这是一张图片，ocr 内容为：默认扫描器已安装.获取扫描器安装帮助,请查看文档. 全部扫描器 HARBOR 搜索HARBOR... DMIN 项目 品项目 已使用的配额 访问级别 日日志 EVERSEC 系统管理员 OBYTE OF 10GIB 公开 系统管理 新建成员 路 用户管理 名机器人账户 镜像仓库 成员标 概要 添加用户到此项目中并给予相对应的角色 仓库管理 名称 Q制管理 十用户 十组 分布式分发 角色 项目管理员 角色 名称 标签 维护人员 项目管理员 ADMIN 开发者 项目定额 访客 15 1-1共计1条记录 页面大小 审查服务 受限访客 血清理服务 任务中心 取消 确定 锁 配置管理 浅色主题 HARBOR APIV2.O -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947392898-2de8f3b9-09ac-40ea-9993-1688cdf8fc08.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947392898-2de8f3b9-09ac-40ea-9993-1688cdf8fc08.png" /></p>
 <p>再提交</p>
 <!-- 这是一张图片，ocr 内容为：[ROOTALOCALHOST -]# DOCKER PUSH 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 ITHE PUSH REFERS TO REPOSITORY [10.20.3.112/EVERSEC/WEB-ALPINE] D4FC045C9E3A:PREPARING [ROOT@LOCALHOST -]# DOCKER PUSH 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 ITHE PUSH REFERS TO REPOSITORY [10.20.3.112/EVERSEC/WEB-ALPINE] D4FC045C9E3A:PUSHED IVO.1: DIQEST: SHA256:6457453F6065D6F250E150469696C42056626594LD57532C0720929DD0628977DO SIZE: 528 [ROOT@LOCALHOST~]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947577185-3d746ddb-22b2-44fe-bf67-1a796dd28144.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947577185-3d746ddb-22b2-44fe-bf67-1a796dd28144.png" /></p>
 <p><font style="color:rgb(34, 34, 34);background-color:rgba(255, 255, 255, 0.9);">查看镜像,创建成功</font></p>
 <!-- 这是一张图片，ocr 内容为：)默认扫描器已安装.获取扫描器安装帮助,请查看文档. 全部扫描器 HARBOR 搜索 HARBOR... ADMIN 项目 品项目 已使用的配额 访问级别 国日志 品 EVERSEC 系统管理员 OBYTE OF 10GIB 系统管理 公开 路 用户管理 机器人账户 配置管理 日志 镜像仓库成员标签扫描器P2P预热策略策略机器人账户 概要  镜像 WEBHOOKS 仓库管理 金复制管理 推送命令 88元 删除 分布式分发 山竹 11 下载数 名称 1个 最新变更时间 ARTIFACTS 标签 2026/7/13 21:42 O 1 EVERSEC/WEB-ALPINE 项目定额 1-1共计1条记录 页面大小 15 市查服务 血清理服务 任务中心 配置管理 点浅色主题 HARBOR API V2.O -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947631067-67cf7da5-2a47-4f71-987d-f828d246dc8c.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947631067-67cf7da5-2a47-4f71-987d-f828d246dc8c.png" /></p>
 <p>拉起镜像测试</p>
 <pre><code class="language-shell">[root@localhost ~]# docker rmi 10.20.3.112/eversec/web-alpine:v0.1
 Untagged: 10.20.3.112/eversec/web-alpine:v0.1
@@ -390,7 +391,7 @@ Status: Downloaded newer image for 10.20.3.112/eversec/web-alpine:v0.1
 10.20.3.112/eversec/web-alpine:v0.1
 </code></pre>
 <!-- 这是一张图片，ocr 内容为：ITROOT@LOCALHOST -1# DOCKER RMI 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 LUNTAGQED: 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 ITROOTATOCALHOST -]# DOCKER PULL 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 VO.1:PULLING FROM EVERSEC/WEB-ALPINE IDIGEST: SHA256:645753FB065D6F250E150469BC42D5B6C65941D57532CO72D929DD0628977DO ISTATUS: DOWNLOADED NEWER IMAGE FOR 10.20.3.112/EVERSEC/WEB-ALPINE:VO.1 10.20.3.112/EVERSEC/WEB-ALPINE:V0.1 [ROOT@LOCALHOST~]# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947733662-713bbc9c-72e1-4f24-a632-fcbce1a7fb5d.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1783947733662-713bbc9c-72e1-4f24-a632-fcbce1a7fb5d.png" /></p>
 <p><strong><font style="color:rgb(34, 34, 34);background-color:rgba(255, 255, 255, 0.9);">使用Harbor的注意事项：</font></strong></p>
 <ol>
 <li><font style="color:rgb(34, 34, 34);background-color:rgba(255, 255, 255, 0.9);">在客户端上传镜像时一定要记得执行docker login进行用户认证，否则无法直接push</font></li>
@@ -400,14 +401,14 @@ Status: Downloaded newer image for 10.20.3.112/eversec/web-alpine:v0.1
 </ol>
 <h3><font style="color:rgb(60, 60, 67);">Harbor 复制管理</font></h3>
 <p><font style="color:rgb(36, 41, 46);">Harbor 提供了 harbor 与非 harbor 服务之间的镜像复制功能，通过复制镜像功能可以将 DockerHub 上的私有镜像给批量的同步到本地，也可以通过在多 Harbor 实例之间进行同步，达到镜像多副本，数据高可用的作用。如下图：</font><!-- 这是一张图片，ocr 内容为： -->
-<img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784370710800-34c3a343-03dd-42c1-86e8-912666bcb550.png" /></p>
+<img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784370710800-34c3a343-03dd-42c1-86e8-912666bcb550.png" /></p>
 <p><font style="color:rgb(36, 41, 46);">当 Harbor 系统管理员身份设置好复制规则后，当满足触发条件时，所有与规则匹配的资源都会被复制到目标仓库中。每个被复制的资源都会启动一个复制任务。如果目标仓库中不存在命名空间，则会自动创建一个新的命名空间。</font></p>
 <p><font style="color:rgb(36, 41, 46);">借助该功能，既可以用作 harbor 仓库的备份，也可以用于测试环境和生产环境之间做镜像、artifact 等制品的同步。作为一种可以考虑的高可用部署的方案，可以部署两套 harbor，互相配置镜像复制同步。</font></p>
 <p><font style="color:rgb(36, 41, 46);">登录 Harbor，打开“复制管理”选项卡，该页面用来管理复制规则，如新增、修改、删除复制规则等，如下图：</font></p>
 <h3><font style="color:rgb(36, 41, 46);">新建复制规则</font></h3>
 <p><font style="color:rgb(36, 41, 46);">点击“+ 新增规则”按钮新建规则，填写名称、描述、复制模式、资源过滤器、目的Registry等信息，如下图：</font></p>
 <!-- 这是一张图片，ocr 内容为：修改规则 名称 UAT-PUSH-PROD 描述 复制模式 PUSH-BASED PULL-BASED 源资源过滤器 名称: 匹配 TAG: 标签: 匹配 资源: 全部 目标仓库 PROD-HTTPS://10.20.3.112 名称空间: 目标 EVERSEC 替换1级 仓库扁平化: 触发模式 事件驱动 取消 保存 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784370813312-2ace8fd7-2ddd-4d1e-8c73-1767efb7d8e7.png" /><font style="color:rgb(36, 41, 46);">参数说明：</font></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784370813312-2ace8fd7-2ddd-4d1e-8c73-1767efb7d8e7.png" /><font style="color:rgb(36, 41, 46);">参数说明：</font></p>
 <ul>
 <li><font style="color:rgb(36, 41, 46);">名称：复制规则的名称</font></li>
 <li><font style="color:rgb(36, 41, 46);">描述：复制规则的描述信息</font></li>
@@ -438,7 +439,7 @@ Status: Downloaded newer image for 10.20.3.112/eversec/web-alpine:v0.1
 <h3><font style="color:rgb(36, 41, 46);">复制实践</font></h3>
 <p><font style="color:rgb(36, 41, 46);">如果我们存在如下架构的 Harbor，在“源Harobr”中配置了一个复制规则，该规则将复制镜像到“目标Harbor”，如下图：</font></p>
 <!-- 这是一张图片，ocr 内容为： -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371040964-120af818-f0e3-4f10-8645-29bfd4c62487.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371040964-120af818-f0e3-4f10-8645-29bfd4c62487.png" /></p>
 <p><font style="color:rgb(36, 41, 46);">在 Docker 中执行如下命令推送 redis 镜像到源 Harbor 服务，如下：</font></p>
 <pre><code class="language-shell">[root@localhost ~]# docker login http://10.20.3.116:8081/
 Username: eversec
@@ -493,22 +494,22 @@ d6d0586ce802: Pushed
 </code></pre>
 <p><font style="color:rgb(36, 41, 46);">结果如下：</font></p>
 <!-- 这是一张图片，ocr 内容为：SWR.CN-NORTH-4.MYHUAWEICLOUD.COM/DDN-K8S/DOCKER.IO/SELECTDB/ALPINE 7.38ME LATEST 05455A08881E YEARS AGO [ROOTOLOCALHOST -]# DOCKER TAG REDIS:7.4.6-BOOKWORM 10:20:3,1166F8031/UAT/FEDIS:7.4.0L [ROOTELOCALHOST ~]# DOCKER PUSH 10.20.3.116:8081/UAT/REDIS:7.4.6 THE PUSH REFERS TO REPOSITORY [10.20.3.116:8081/UAT/REDIS] 0E2B13B72CD3: B:PUSHED 5F70BF18A086: PUSHED 28731D7170A2: PUSHED C064B08FD97D: PUSHED 6F5FF7F21159: PUSHED 67DDFODB316B:PUSHED 6FCFC5539098:PUSHED 59.24MB/74.81MB D6DO586CE802: PUSHING -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371653281-ccecd561-c346-4768-98f9-dbc2ffff56c3.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371653281-ccecd561-c346-4768-98f9-dbc2ffff56c3.png" /></p>
 <p><font style="color:rgb(36, 41, 46);">执行完上面命令后，再次进入“复制管理”页面，多出了一条日志记录，该日志触发模式为“event_based”，如下图：</font></p>
 <!-- 这是一张图片，ocr 内容为：事件日志 复制管理 操作 新建规则 巴复制 状态 名称 复制模式 源仓库 目标仓库扁平化 目标仓库:名称空间 触发器 替换1级 启用 基于事件 UAT-PUSH-PROD PUSH-BASED LOCAL PROD:EVERSEC 15 1-1共计1条记录 页面大小 管理列 复制任务 停止任务 成功百分比 触发器 1个 状态 11 持续时间 ID 1个 创建时间 总数 SUCCEEDED 2026/7/18 19:30 100% 13 S6 EVENT BASED 1-1共计1条记录 页面大小15Y -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371751596-90ee6afb-4913-4268-82b6-22aa989b7cba.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371751596-90ee6afb-4913-4268-82b6-22aa989b7cba.png" /></p>
 <p><font style="color:rgb(36, 41, 46);">登录到目标 Harbor，查看项目“demo”项目，多出了一个 demo/redis 镜像，这就是刚才我们推送到源 Harbor 上的镜像，如下图：</font></p>
 <!-- 这是一张图片，ocr 内容为：搜索HARBOR... ADMIN 事件日志 项目 访问级别 已使用的配额 品 EVERSEC 系统管理员 34.64MIB 公开 OF 10GIB P2P预热 标签 扫描器 成员 机器人账户 策略 日志 概要 配置管理 WEBHOOKS 镜像仓库 推送命令 X删除 名称 最新变更时间 JT 4个 ARTIFACTS 下载数 2026/7/18  19:31 O EVERSEC/REDIS 1 1 2 EVERSEC/WEB-ALPINE 2026/7/14 02:22 页面大小15 1-2共计2条记录 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371855527-5114d0f8-754a-4feb-a767-efe6bf7d3730.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1784371855527-5114d0f8-754a-4feb-a767-efe6bf7d3730.png" /></p>
 <h3>创建jenkins 机器人账号</h3>
 <p>用来jenkins 复制推送镜像</p>
 <!-- 这是一张图片，ocr 内容为：HARBOR 搜索HARBOR... 品项目 基本信息 圆日志 创建系统级机器人账户 系统管理 创建一个包含系统级权限和覆盖指定项目的 郑 用户管理 JENKINS-PUSH 机器人账户 名称 机器人账户 描述 效期剩余 基本信息 描述 仓库管理 JENKIN推送用 选择系统权限 复制管理 选择项目权限 分布式分发 过期时间 永不过期 标签 项目定额 页面大小 条记录 15 审查服务 清理服务 任务中心 配置管理 取消 浅色主题 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785238271161-bcdc4e55-611c-427f-b63d-fd2b233abe0c.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785238271161-bcdc4e55-611c-427f-b63d-fd2b233abe0c.png" /></p>
 <!-- 这是一张图片，ocr 内容为：选择项目权限 创建系统级机器人账户 创建一个包含系统级权限和覆盖指定项目的 覆盖全部项目 机器人账户 基本信息 重置所有项目初始权限 选择全部项目 YT 项目名称 一个?创建时间 权限 选择系统权限 LIBRARY 2026/7/14 01:20 项权限 选择项目权限 UAT 2026/7/14 01:24 70项权限 页面大小 1-2共计2条记录 5 V 上一步 完成 取消 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785238514125-886eab19-c06a-4e9e-98b2-77a175ca27b4.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785238514125-886eab19-c06a-4e9e-98b2-77a175ca27b4.png" /></p>
 <p>jenkins配置</p>
 <!-- 这是一张图片，ocr 内容为：UPDATE CREDENTIAL 范围 全局(JENKINS,NODES,ITEMS,ALL CHILD ITEMS,ETC) 用户名 ROBOT$JENKINS-PUSH TREAT USERNAME AS SECRET 密码 已隐藏 修改密码 RES ID HARBOR-CRED ? 描述 JENKINS推送HARBOR使用机器人账号 SAVE -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785240015721-3499c8e7-16eb-4b4a-8a39-474723ce914f.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2026/png/34997268/1785240015721-3499c8e7-16eb-4b4a-8a39-474723ce914f.png" /></p>
 <pre><code class="language-groovy">stage('Push Docker Image') {
     when {
         expression { currentBuild.result != 'FAILURE' }

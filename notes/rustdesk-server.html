@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>远程软件rustdesk server搭建 | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -24,7 +25,7 @@
 <div class="md-body"><h1>RustDesk架构概述</h1>
 <p><font style="color:rgb(25, 27, 31);">要理解自建服务器的重要性，首先需要对 RustDesk 的架构有一个全面的了解。RustDesk 采用了经典的客户端-服务器模型，其中涉及三个主要组件：RustDesk 客户端、RustDesk 服务器和 ID Server。</font></p>
 <!-- 这是一张图片，ocr 内容为：1. RENDEZVOUS PROTOCOL SERVERL:SIGNALING 1.RENDEZVOUS PROTOCOL 2. CONTROL DATA IF HOLE OUNCHING SUCCEEDS HOLE PUNCHING ERROR 3. VIDEO FRAME ' REMOTE COMPUTER CLIENT COMOUTER CONTROL DO 5.VIDEO FRAME 4. VIDEO FRAME SERVERA : RELAY SERVER NOTE : RENDEZVOUS PROTOCOL HELP TO FIND EACH OTHER -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723711468016-21b01c9a-f55c-4c6a-a3a8-c9d4572e33bd.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723711468016-21b01c9a-f55c-4c6a-a3a8-c9d4572e33bd.png" /></p>
 <h1>工作原理</h1>
 <p>RustDesk 会先用 TCP 21116 信令服务 NAT 打洞，如果打洞成功，直接 P2P 直连，RustDesk 不参与中继。</p>
 <p>RustDesk 如果没有打洞成功，则走 TCP 21117 中继服务，延迟、画质取决于中继服务器的带宽。</p>
@@ -164,20 +165,20 @@ networks:
 <h1>连接配置验证</h1>
 <p><font style="color:#ff0000;">这边防火墙做了内网映射10.20.3.201的端口映射到112.51.25.139对应的端口</font></p>
 <!-- 这是一张图片，ocr 内容为：HTTP5//10:10:1-8443/WNM/FRAME/INDEXPHP3SESSIONID-20001708380EA85EC5EC5EDDR21287651BA5D$M NATSERVERVER 不安全 回 # H3C SECPATH F100-S- 网络 系统 策略 概览 对象 监控 G3 导航 NAT内部服务器 请输入内部服务 X删除 启用 C剧所 禁用 安全策略 清空统计数据 复制统计 新建 取能流计 安全策略 快迪配 协议类型/外网墙口 外网VRF 外网地址 内部服务器地址 内邮服, 反向地 内部服. 名称 提口 ACL 接口描述 映射备注 状态 GE1/0/2 TCP (6)/21116 公网 112.512 公网 禁止 10.20.3.201 启用 移动专线 21116 NUSTDESK滨口21116 策略冗余分析 GE1/0/2 启用 10.20.3.201 公网 TCP (6)/21117 21117 NUSTDESK洪口21117 112.51.2 移动专线.. 公网 禁止 策略命中分析 启用 10.20.3.201 TCP(6)/211118 GE1/0/2 公网 公网 RUSTDESK城口21118 112.51.2. 禁止 21118 移动专线.. 安全防护 TCP (6)/21119 移动专线. GE1/0/2 公网 10.20.3.201 112.51.2. 21119 公网 RUSTDESKD进口21119 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1724920635207-1d5361e2-da0f-432b-8b4f-b7f7610470a4.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1724920635207-1d5361e2-da0f-432b-8b4f-b7f7610470a4.png" /></p>
 <p>客户端配置：</p>
 <p>RustDesk 客户端的 设置 -&gt; ID/中继服务器 ，然后输入如下三个信息</p>
 <p>ID 服务器：rustdesk.example.com:21116，默认端口为21116时可以省略端口配置</p>
 <p>中级服务器：rustdesk.example.com:21117，默认端口为21117时可以省略端口配置</p>
 <p>Key：填写部署服务默认生成的 id_ed25519.pub 文件中的内容</p>
 <!-- 这是一张图片，ocr 内容为：设置 主页 设置 ID/中继服务器 常规 112.51.25.139 ID 服务器: 安全 112.51.25.139:2117 中继服务器: 网络 豆 API服务器: 显示 吕账户 KEY: EV 关于 应用 代理 SOCKS5/HTTP(S)代理 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723712603655-03c1ae04-6ecf-4184-8ee7-2080c8e08c25.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723712603655-03c1ae04-6ecf-4184-8ee7-2080c8e08c25.png" /></p>
 <p>手机端配置：</p>
 <!-- 这是一张图片，ocr 内容为：18:40% 品 RUSTDESK 账户 登出(PHONE2) 设置 ID/中继服务器 ID服务器 华大 112.51.25.139 中继服务器 112.51.25.139 API服务器 KEY 硬件线 使能 确认 取消 录屏 自动录制来访会话 目录://STORAGE/EMULATED/0/ RUSTDESK/SCREENRECORD -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1724236831923-0616928f-aadf-4128-8b5f-7e9703bd1863.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1724236831923-0616928f-aadf-4128-8b5f-7e9703bd1863.png" /></p>
 <p>远程连接测试</p>
 <!-- 这是一张图片，ocr 内容为：1950532070@REDMI-2109111... 0401 X REC 任务编号 6461 恶意程序URL处置测试(日常) 任务模板 任务状态 完成 100% 日志数量 总数:100 成功:100 接收时间 2024-08-15 11:06:13 结束时间 2024-08-15 11:06:18 任务编号 62775 2024恶意程序三级协同全机房 任务模板 自测 任务状态 完成 100% 执行结果 执行成功 总数:158成功:158 日志数量 接收时间 2024-08-15 09:53:41 结束时间 2024-08-15 09:57:14 任务编号 60942 2024恶意程序三级协同全机房 任务模板 自测 任务状态 完成 100% 任务 我的 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723713389883-c0c59793-d84f-43cd-bdff-f83a18a97b85.png" /></p></div>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2024/png/34997268/1723713389883-c0c59793-d84f-43cd-bdff-f83a18a97b85.png" /></p></div>
 <div class="pager"><a href="/notes/linux-nfs-share.html">&laquo; linux nfs目录共享</a><a href="/notes/doc-f769f0c0ab.html">从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（上） &raquo;</a></div>
 </article>
 </main>

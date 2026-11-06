@@ -181,6 +181,7 @@ HEAD = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -226,8 +227,19 @@ PAGE_TMPL = """<main class="wrap">
 
 
 def render_md(text: str) -> str:
+    """Render markdown, then make external images referrer-free.
+
+    Yuque (cdn.nlark.com) rejects requests carrying a foreign Referer with 403.
+    `referrerpolicy="no-referrer"` makes the browser omit the Referer header,
+    and the page-level meta in HEAD is a fallback for older browsers.
+    """
     md = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists"])
-    return md.convert(text)
+    out = md.convert(text)
+    return re.sub(
+        r"<img\b(?![^>]*referrerpolicy)",
+        '<img referrerpolicy="no-referrer" loading="lazy"',
+        out,
+    )
 
 
 def plain_text(rendered: str, limit: int = 6000) -> str:
@@ -532,6 +544,25 @@ def archive_block(entries: list[dict]) -> str:
     return "".join(out)
 
 
+def patch_legacy_images() -> int:
+    """Add no-referrer to Yuque images inside the old Hexo-generated pages."""
+    pattern = re.compile(
+        r"<img\b(?=[^>]*cdn\.nlark\.com)(?![^>]*referrerpolicy)"
+    )
+    changed = 0
+    for path in ROOT.rglob("*.html"):
+        if ".git" in path.parts or NOTES.name in path.parts:
+            continue
+        s = path.read_text(encoding="utf-8")
+        if HEXO_MARK not in s:
+            continue
+        out, count = pattern.subn('<img referrerpolicy="no-referrer"', s)
+        if count:
+            write(path, out)
+            changed += count
+    return changed
+
+
 def patch_blog_stream(entries: list[dict]) -> None:
     """Merge the docs into the Hexo article stream (home, counters, widgets, archive)."""
     total = count_original_posts() + len(entries)
@@ -596,6 +627,9 @@ def main() -> None:
     entries = build_pages()
     cleanup_generated(entries)
     patch_navigation()
+    legacy = patch_legacy_images()
+    if legacy:
+        print("  legacy Yuque images fixed: %d" % legacy)
     patch_blog_stream(entries)
     patch_search(entries)
     if not NOJEKYLL.exists():

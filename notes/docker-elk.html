@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>docker搭建ELK日志监控系统 | 文档中心</title>
 <!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
 <link rel="shortcut icon" href="/img/favicon.png">
 <link rel="stylesheet" href="/notes/doc.css">
 </head>
@@ -28,10 +29,10 @@
 （4）分析[analyze]：⽀持 UI 分析<br />
 （5）警告[warning]：能够提供错误报告，监控机制   </p>
 <!-- 这是一张图片，ocr 内容为：ENTERPRISE SITE APPLICATION LOGGING SEARCH SEARCH SEARCH FUTURE SOLUTIONS BUSINESS SECURITY APM METRICS ANALYTICS ANALYTICS KIBANA VISUALIZE ELASTICSEARCH STORE SEARCH &ANALYZE ELASTIC STACK LOGSTASH BEATS INGEST SELF MANAGED SAAS DEPLOYMENT ELASTIC CLOUD ELASTIC CLOUD STANDALONE ENTERPRISE -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822250131-44e5d096-8081-4dbb-8ec5-dcda5ae2227d.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822250131-44e5d096-8081-4dbb-8ec5-dcda5ae2227d.png" /></p>
 <h1>⼀：ELK</h1>
 <!-- 这是一张图片，ocr 内容为：NGINX日志 N 收集日志 数据展示分析 解析过滤传送 收集日志 ELASTICSEARCH LOGSTASH KIBANA TOMCAT日志 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822310498-f6734145-0711-49fa-a658-bbd5946bd9d2.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822310498-f6734145-0711-49fa-a658-bbd5946bd9d2.png" /></p>
 <p><font style="color:#DF2A3F;">注意启动顺序，要先启动elasticsearch 否则先启动其他的会报错 </font>  </p>
 <h2>1：elasticsearch介绍</h2>
 <p>elasticsearch是⼀个分布式、⾼扩展、⾼实时的搜索与数据分析引擎，作为存储系统是整个ELK架构的<br />
@@ -43,7 +44,7 @@ logstash提供了⼤量插件，可解析，丰富，转换和缓冲任何类型
 <strong>管道(pipeline) 是logstash中独⽴运⾏的单元。每个管道都必须要包含输⼊(input)、输出(output)以及可<br />
 </strong>**选的过滤器(fileter) **<br />
  <!-- 这是一张图片，ocr 内容为：FILTERS INPUTS OUTPUTS LOGSTASH PIPELINE ELASTICSEARCH DATA SOURCE --></p>
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822513199-fb60881f-131b-4f0f-80e6-1bcc1ec833ce.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679822513199-fb60881f-131b-4f0f-80e6-1bcc1ec833ce.png" /></p>
 <p>1：inputs 输⼊ 【输⼊来源可以是file、kafka、beats等】<br />
 2：filters 过滤<br />
 3：outputs 输出 【输出⽬标可以是Stdout(控制台)、File、ES等】 </p>
@@ -83,7 +84,7 @@ xpack.security.enabled: true #开启密码校验，若开启就必须要⾛第4�
 <p><strong>x-pack配置功能</strong></p>
 <p>X-Pack是Elastic Stack的⼀个扩展插件，包含了安全控制、报警、监控、报表和画图功能。XPack能够⽅便地启⽤或禁用</p>
 <!-- 这是一张图片，ocr 内容为：ELASTICSEARCH SETTINGS KIBANA SETTINGS LOGSTASH SETTINGS X-PACK FEATURE YES NO NO DEVELOPMENT TOOLS YES GRAPH NO NO YES YES NO MACHINE LEARNING NO MANAGEMENT NO YES MONITORING YES YES YES YES NO REPORTING NO YES NO SECURITY YES AUDITING NO NO YES NO WATCHER NO YES -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679823280734-7150f0d0-007c-4934-b5e3-f27856ea08af.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679823280734-7150f0d0-007c-4934-b5e3-f27856ea08af.png" /></p>
 <h2>3：启动容器</h2>
 <p>创建挂载目录</p>
 <pre><code class="language-shell">mkdir -p /data/elasticsearch/plugins;
@@ -113,7 +114,7 @@ elasticsearch:7.17.9
 </code></pre>
 <h2>4：设置密码</h2>
 <!-- 这是一张图片，ocr 内容为：[0.000S]LERROR 10.20.3.109:92 X X 知如何给ELASTICS /BIN/ELASTICSE DOCKER部署EL 历史记录 DOCKER部署EL 10.20.3.109:9200 系统镜像下载 公司 工具箱-程序员编程 运维 PROMETHEUS 登录 HTTP://10.20.3.109:9200 您与此网站的连接不是私密连接 用户名 密码 登录 取消 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827662693-9bd133e0-0e1e-4bec-be48-cccc12f13a23.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827662693-9bd133e0-0e1e-4bec-be48-cccc12f13a23.png" /></p>
 <p>进入elasticsearch容器中初始化各个组件的密码 </p>
 <p><code>./bin/elasticsearch-setup-passwords interactive</code></p>
 <pre><code class="language-shell">#使用curl localhost:9200 -u elastic:{password}如下方式访问则正常:
@@ -146,7 +147,7 @@ GET /_cat/indices?v
 <h3>1：修改配置文件</h3>
 <p>修改elasticsearch.yml配置⽂件注释使⽤xpack安全校验配置，取消使⽤密码校验 <br />
  <!-- 这是一张图片，ocr 内容为：NEW O "ELASTIC" CLUSTER.NAME: 1 NETWORK.HOST: 0.0.0.0 2 HTTP.CORS.ENABLED: T 3 TRUE 14 11 4 HTTP.CORS.ALLOW-ORIGIN: 5 #XPACK.SECURITY.ENABLED: TRUE --></p>
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827753485-f1047261-a865-44a0-b9da-e93c0abd5fd0.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827753485-f1047261-a865-44a0-b9da-e93c0abd5fd0.png" /></p>
 <h3>2：重启容器查看所有索引</h3>
 <pre><code class="language-shell">[root@k8s-node2 config]# docker exec -it  53101abb98a5 /bin/sh                 
 sh-5.0# curl -XGET &quot;127.0.0.1:9200/_cat/indices&quot; -H 'Content-Type: application/json'
@@ -154,7 +155,7 @@ green open .geoip_databases TTzAdkvuTpuMbIlxAF0Kng 1 0 42 0 40.6mb 40.6mb
 green open .security-7      Tfpxal73Tvexzcwk4Yv5_Q 1 0  7 0 25.7kb 25.7kb
 </code></pre>
 <!-- 这是一张图片，ocr 内容为：CPOG -XGET "127.0.0.1:9200/_CAT/INDICES" SH-5.0# CONTENT-TYPE: APPLICATION/JSON' CURL H- 420 TTZADKVUTPUMBILXAFOKNG 1 0 GEOIP_DATABASES 40.6MB 40.6MB OPEN GREEN TFPXA173TVEXZCWK4YV5_Q 1 0 .SECURITY-7 70 25.7KB 25.7KB GREEN OPEN SH-5.0# -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827983017-917b6be2-4436-4a02-b792-d08c49dcef87.png" />  </p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679827983017-917b6be2-4436-4a02-b792-d08c49dcef87.png" />  </p>
 <h3>3：删除<font style="color:rgb(77,77,77);">security-7索引</font></h3>
 <pre><code class="language-shell">sh-5.0# curl -XDELETE 127.0.0.1:9200/.security-7
 {&quot;acknowledged&quot;:true}sh-5.0# 
@@ -167,7 +168,7 @@ green open .security-7      Tfpxal73Tvexzcwk4Yv5_Q 1 0  7 0 25.7kb 25.7kb
 <p><code>docker pull logstash:7.17.9</code></p>
 <h2>2：修改配置</h2>
 <!-- 这是一张图片，ocr 内容为：LOGSTASH.YML 应用配置文件 输入,过滤,输出 PIPELINE1.CONF 独立运行单元:管道 多管道配置文件 输入,过滤,输出 多管道配置文件 PIPELINE2.CONF PIPELINES.YML 多管道配置文件 输入,过滤,输出 PIPELINE3.CONF -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679829473184-ed859720-ff1c-448f-b5b7-35e37082eea3.png" />  </p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679829473184-ed859720-ff1c-448f-b5b7-35e37082eea3.png" />  </p>
 <h3>1：logstash.yml</h3>
 <p>logstash本身的配置⽂件，用于设置控制logstash启动、运行的参数 <br />
 原始 <code>&lt;font style="color:#DF2A3F;"&gt;/config/logstash.yml &lt;/font&gt;</code></p>
@@ -278,15 +279,15 @@ docker run -d --privileged=true --name kb -p 5601:5601 --net elk_net --ip 172.18
 kibana:7.17.9
 </code></pre>
 <!-- 这是一张图片，ocr 内容为：IOS手机端网页测试 GIT 克隆别人代码提... 公司 JAVAWEB教程目录... PYTHON教程-康雪峰 工具箱-程序员编程... BUTTERFLY 运维 PROMETHEUS 系统镜像下载 LUCKYYE-自闭~. 搜索 ELASTIC ELASTIC 三款 主页 通过添加集成开始使用 要开始使用您的数据,请使用我们众多采集选项中的一个选项.从应用或服务收集 数据,或上传文件.如果未准备好使用自己的数据,请添加示例数据集. 添加集成 试用样例数据 UPLOAD A FILE 管理 开发工具 STACK MANAGEMENT 管理索引生命周期 管理权限 目日 监测堆栈 备份和还原 定义生命周期策略,以随着索引老 将快照保存到备份存储库,然后还 控制访问者及其可以执行的任务. 跟踪部署的实时运行状况和性能. 化自动执行操作. 原以恢复索引和集群状态. -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679834126015-be269a49-b3eb-45aa-a788-83043233b0ee.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679834126015-be269a49-b3eb-45aa-a788-83043233b0ee.png" /></p>
 <!-- 这是一张图片，ocr 内容为：个TQ 巴士身口二 不安全|10.20.3.109:5601/APP/MANAGEMENT/DATA/INDEX_MANAGEMENT/INDICES 更新 R JOS手机端网页测试 系统流像下我 工具箱-程序员编程... GIT 克隆别人代码提... JAVAWEB教程目录 PYTHON教提-度雪峰 运维 公司 LUCKYYE-自闭 BUTTERFLY PROMETHEUS ELASTIC 搜索ELASTIC 索引管理 STACK MANAGEMENT 索引管理 管理 索引管理文档 采集 索引 索引模板 数据流 组件模板 采集管道 分别或批量更新您的ELASTICSEARCH索引.了解详情. 数据 包括隐藏的索引 包括汇总索引 索引管理 重载索引 索引生命周期策略 搜索 拍取快照并还原 状态 文档计数 副本分片 名称 运行状况 主分片 数据流 存储大小 汇总/打包作业 转换 6 NGINX-LOG-2023-03-26 18.5KB YELLOW OPEN 远程集群 每页行数:10 告警和洞见 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679839731638-ffa7f338-32f3-46fa-941e-402bfb32a187.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679839731638-ffa7f338-32f3-46fa-941e-402bfb32a187.png" /></p>
 <!-- 这是一张图片，ocr 内容为：搜索ELASTIC ELASTIC 索引模式 STACK MANAGEMENT 索引楼 告警和洞见 规则和连接器 REPORTING 创建和管理 MACHINE LEARNING 作业 您在ELASTICSEARCH中有数据. 安全 现在,创建索引模式. SEARCI 用户 KIBANA需要索引模式来识别您要浏览的数据链,索引和索引别 角色 PATTERN 个 名.索引模式可以指向特定索引(例如昨天的日志数据),或 API密钥 包食日志数据的所有索引. KIBANA 创建索引模式 索引模式 已保存对象 标签 希望了解详情? 搜索会话 阅读文档区 工作区 高级设置 STACK R 许可管理 升级助手 羊闲 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840205662-a94e9f8d-e876-4143-ba7f-0e6bdc18e206.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840205662-a94e9f8d-e876-4143-ba7f-0e6bdc18e206.png" /></p>
 <!-- 这是一张图片，ocr 内容为：10 2031035501/APP/MANAGSMENT/IBANAFINDEXPATTEMS/PATTERNS/8E1856CO-CBEO-LLED-1LED-FB160073D88D+/7 A三(N 不安全 公司 运维 工具箱-程序员编程... 系统镜像下载 LUCKY YE-自闭 BUTTERFLY GIT克隆别人代码提... PYTHON教程-廖雪峰 PROMETHEUS ELASTIC 搜索ELASTIC 索引模式 默 STACK MANAGEMENT NGINX* HOME NGINX* ANALYTICS 时间字段:"@TIMESTAMP" OVERVIEW 点击DISCOVER音看和编辑NGINX*中的宇段,字段属性,如类型和可提索性,基于EARCH 中的宇段映射心. DISCOVER DASHBOARD 脚本字段(0)  字段筛选(0) 字段(16) CANVAS 搜索 MAPS MACHINELEARNING 可搜索 格式 名称 类型 VISUALIZE LIBRARY @TIMESTAMP DATE ENTERPRISE SEARCH @VERSION TEXT 概监 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840290351-b91736ae-8faf-4454-ab49-03b2a97030da.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840290351-b91736ae-8faf-4454-ab49-03b2a97030da.png" /></p>
 <!-- 这是一张图片，ocr 内容为：ELASTIC 搜索ELASTIC 同保存 选项新建打开共享检查 DISCOVER 搜索 刷新 显示日期 过去15分钟 KQL +添加筛选 6个命中 NGINX* 图表选项 品 6543210 搜索字段名称 按类型筛选 10 可用字段 22:12:00 22:09:00 22:11:00 22:08:00 22:13:00 22:10:00 22:1400 22:05:00 22:17:00 22:15:00 22:07:00 22:04:00 22:16:00 22:06:00 MAR 26,2023 @ 22:07721-MAR 26,26,2023 @ 22:18:07721 ID INDEX 文档 TIME  SCORE STIMESTAMP: NAR 26, 2823 0 22:95:42.292      1 LERROR] MAR 26, 2023 @ 22:05:42.292 -TYPE 29829:*3 DIRECTORY INDEX OF  172, 16.5, SERVER; LOCAL/" IS FORBLDEN, ELIENT; 16.5,  SERVER; LOCALHOST RTIMESTAMP REQUEST:"GET / HTTP/1.1",HOST:"10.20.3,109"  PATH://USR/SHARE/LOGS/ERROR.10G TYPE:/ NGINX-LOG -ID: RZEGHOCBVAR6QUZ4PDJ- -INDEX:NGINX-LOG-2023-03-26 -SCORE: - - - -TYPE: -DOC VERSION HOST MAR 26, 2023 @ 22:05:42.289 MESSAGE 26T14:05:41+00:00","HOST":172.18.0.5","SERVICE":"NGINXTEST","TRACE":"- PATH ",LOG":"LOG","CLIENTIP":"172.16.16.5","REMOTE_USER":"-",","REQUEST":"GET / HTTP/1."HTTP.USER-AGER,AGENT';"HOZILLA/5,) (MINDOWS NT 10.J; WING4; X64) APPLENKIT/S37,36 (KHTHL, DEC TYPE CHRONG/96:0,4664.93 SAFARL/937,30"," "UDETREAMMOST';"RESOONSEEIING":'UPETREAMTINE':""","UDETREAMMOST' -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840308005-caefc435-eb59-4730-81b0-22068d6b6e03.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679840308005-caefc435-eb59-4730-81b0-22068d6b6e03.png" /></p>
 <h1>五、日志来源</h1>
 <p><strong>启动nginx</strong></p>
 <pre><code class="language-shell">mkdir -p /data/nginx/html
@@ -372,7 +373,7 @@ http {
 <h1>六:ELFK之FileBeat</h1>
 <h2>1：FileBeat介绍</h2>
 <!-- 这是一张图片，ocr 内容为：BEATS ATS的套件是针对不同的数据源. WINLOGBEAT FILEBEAT PACKETBEAT ANALYZE NETWORK PACKET DATA. REAL-TIME INSIGHT INTO LOG DATA. ANALYZE WINDOWS EVENT LOGS. DOWNLOAD DOWNLOAD DOWNLOAD METRICBEAT AUDITBEAT HEARTBEAT SHIP AND ANALYZE METRICS. SEND AUDIT DATA TO ELASTICSEARCH. PING YOUR INFRASTRUCTURE. DOWNLOAD DOWNLOAD DOWNLOAD FUNCTIONBEAT JOURNALBEAT SHIP CLOUD DATA WITH SERVERLESS INFRASTRUCTURE. ANALYZE JOURNALD LOGS. -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842145240-a879d8f0-fef9-4efb-8f26-8ae47750b56b.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842145240-a879d8f0-fef9-4efb-8f26-8ae47750b56b.png" /></p>
 <pre><code class="language-yaml">filebeat.inputs:
 paths:
 - /usr/share/filebeat/logs/*.log # 每⼀个“-”代表⼀个⽇志位置
@@ -381,7 +382,7 @@ paths:
 <p>将新数据发送到libbeat，libbeat 进行聚合操作并将聚合数据发送到filebeat配置的输出中</p>
 <p><strong><font style="color:#DF2A3F;">inputs：输入负责管理收割机并查找所有要读取的数据源</font></strong></p>
 <!-- 这是一张图片，ocr 内容为：L_ INPUT 1: SPOOLER /VAR/LOG/*.LOG ELASTICSEARCH HARVESTER SYSTEM.LOG LOGSTASH HARVESTER WIFI.LOG KAFKA INPUT  2: /VAR/LOG/APACHE2/* 白月日期限公司 REDIS ERROR.LOG 1IIIII FILEBEAT -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842548193-452f0423-59e2-4cf2-80cf-37ba1215a73a.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842548193-452f0423-59e2-4cf2-80cf-37ba1215a73a.png" /></p>
 <h2>2：FileBeat与Logstash的比较</h2>
 <p>filebeat优点：是⼀个轻量的文件采集器，占用资源极少。而ogstash占用资源较大，若兼具收集和分析<br />
 的作用，将会占据更大的服务器资源。因此当存在多个应用服务器时，logstash就不能在每个应用服务<br />
@@ -395,7 +396,7 @@ filebeat缺点：logstash相比于filebeat，前者可以同时配置多个输�
 </p>
 </blockquote>
 <!-- 这是一张图片，ocr 内容为：FILEBEAT 数据源1 采集 过滤 KIBANA ELASTICSEARCH LOGSTASH 可视化 存储 过滤 采集一 FILEBEAT 数据源2 -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842919962-de10f52a-95b4-43a4-b6cc-9a4e628556ca.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679842919962-de10f52a-95b4-43a4-b6cc-9a4e628556ca.png" /></p>
 <h2>3：FileBeat部署</h2>
 <p><font style="color:#DF2A3F;">在ELK架构基础上进行组件的添加 </font></p>
 <h3>3.1 拉取镜像</h3>
@@ -462,9 +463,9 @@ docker run -d --privileged  \
 logstash:7.17.9
 </code></pre>
 <!-- 这是一张图片，ocr 内容为：:更新 RID R 运维 工具箱程序员编程... OLUCKYYE自闭 GIT 克隆别人代码提.... 系统镜像下载 IOS手机端网页测试 JAVAWEB教程目录... PYTHON教程_廖雪峰 BUTTERFLY 公司 PROMETHEUS ELASTIC 搜索ELASTIC 打开 共享 检查 保存 新建 选项 DISCOVER 搜索 首 MAR 27,2023@11:10:00.00 KQL 刷新 添加筛选 FILEBEAT-NGINX-LOG-2023-03... 3个命中 图表选项 2 搜索字段名称 1.5 1 按类型筛选 0 0.5 可用字段 19 11:10:25 11:10:20 11:10:10 11:10:00 11:10:05 TID MAR 27,2023@ 11:10:00.000- MAR 27,2023 @ 11:10:30.000 _INDEX MAR  27.2023   11:12号 AME:0B52C81E097E AGENT.HOSTNAME: GBS2EALE997E AGENT.ID:   GBAB4125-9665-4CZE-B3F3-OZAB600ZA66002A  AGENT-NAME: 06529 .TYPE YPE:FILESTREAM AGENT.TYPE:FILEBEAT AGENT.VERSION:7.17.9 ECS.VERSION:1.12.G INPUT.TYPE: FIL 值 @TIMESTAMP 109:FILE.PATH;/ /UAR/SHARE/FLLEBEOT/LOGS/ERFOR)  209 109:0FFSET:   MESSA9E;  203/27  3:10:96  [ERROR @VERSION 445 OPEN() "(USR/SHARE/NGINXTHTML/FAVJOON.LOO" FAILED (2: NO SUCH FILE OF DLRECTORY), OLLENT; 18.4:1' AQENT.EPHEMERAL_ID 查看周围文档查看单个文档 已展开文档 表 AGENT.ID JSON -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679886797006-68097cde-525d-4721-826f-6ec0d302e4d0.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679886797006-68097cde-525d-4721-826f-6ec0d302e4d0.png" /></p>
 <!-- 这是一张图片，ocr 内容为：ET TEXT ON A START_OBJECT 1:9"7777 1E097E"?, "QTIMESTAMP"->2023-03-26T16:45: .                                          ECS '"ECS'-ECS'->ECS>{ \"2023-03-26T16:41:41+00 {"VERSION">"1.12.0" "TYPE"FILESTREAM"了,"ME! :00\'/'HOST)"1''172.18.0.5 ,\"REMOTE_USER\":\"-\",\" \"SERVICE\":\"NGINXTEST\"TRACE\"TRACE\"-\"LOG\"LOG\ \"LOG\",\"CLIENTIP\":\"172.16.16.5\ REQUEST\":\"GET / HTTP/1.1\", \HTTP_USER_AGENT\":\"MOZILLA/5.0 (WINDOWS NT 1 WIN64; X64) APPLEWEBKIT/537.36 (KHTML LIKE GECKO) CHROME/96 NT 10. "HTTP_HOST\":\"10.20.3.109\",\"UR .0.4664.93 SAFARI/537.36\ /""/"UPSTREAMHOST\":\":/"-/" THTHSTE:20.3.10PONSETING\0.COO. L"SIZEL": \"UPSTREAMTIME\ :\"/INDEX.HTM7\",\"DOMAIN\" "TAGS">["BEATS_INPUT_CODEC_PLAIN_APPLIE -)",/"STATUS(":|"304\"3". "REFERERL""""""" , "AGENT"三>{"NAME"->"OB52C81E097E", O,"FILE"-{"PATH"二>"/USR/SHARE/FILEBEAT/LOGS/ACCESS.LOG"了 LOG">{"OFFSET">4900, D"], HOSTNAME""0B52C81 "EPHEMERAL_ID"->"C3A2144C-8FDO-4258-9BDB-93A218927A93 "OOAB4125-9B65-4C2E-B3F3-02AB60D20EA4" E097E "7.17.9","TYPE">"F ID''00AB VERSION'' ILEBEAT"了, "TYPE">"NGINX-LOG"了], :RESPONSE->{"INDEX">>{"_INDEX" >"2PHOHOCBVQR604Z4H FILEBEAT -NG1NX-10G-2023-03-26","_TYPE"->"_DOC" PL_. "STATUS">400,"ERROR"S>{"TYP ON"."REASON "FAILED TO PARSE FIELD THOST] OF TYPE {"TYPE"->"MAPPER_PARSING_EXCEPTION", TEXT IN DOCUMENT WITH ID TNA '2PHOHOCBVOR6Q4Z4HTNA' PREVIEW OF FIELD'S VALUE:'{NAME-0B52C81E097E}'", REASON'>> CAN'T UO11DAZYA_AIPIS-LPBALL <- ADKI 1<- HA NASNP) GET TEXT ON A START_OBJECT AT 1:9"JJJJ] ZV [5]  DOCKER LOGS -F 3B7C3178358B STOPPED -->
-<p><img alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679849590161-543bbbe3-c38c-4640-aeb5-cd21d76639f8.png" /></p>
+<p><img referrerpolicy="no-referrer" loading="lazy" alt="" src="https://cdn.nlark.com/yuque/0/2023/png/34997268/1679849590161-543bbbe3-c38c-4640-aeb5-cd21d76639f8.png" /></p>
 <pre><code class="language-bash">filter {
   mutate {
     remove_field =&gt; [ &quot;host&quot; ]
