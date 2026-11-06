@@ -82,6 +82,32 @@ DOCS = {
     "远程软件rustdesk server搭建.md": ("rustdesk-server", "存储与工具"),
 }
 
+# 发表日期。这些笔记是从语雀导出的，图片 URL 里的 13 位毫秒时间戳就是当时
+# 插图的上传时间，拿它还原真实写作日期，比文件 mtime 靠谱 —— md 是从桌面
+# 复制过来的，mtime 全变成了复制当天，所以之前首页/归档全挤在同一天。
+# md 原文保持不动，日期集中在这里维护；新建的 md 也可以直接在 front-matter
+# 里写 date: 覆盖本表。优先级：front-matter > DATES > 文件 mtime。
+DATES = {
+    "clickhouse的zookeeper升级与配置acl账号.md": "2024-08-06",
+    "dbeaver连接带kerberos认证的impala.md": "2023-02-01",
+    "docker-compose搭建mysql主从复制.md": "2023-02-05",
+    "docker搭建ELK日志监控系统.md": "2023-03-26",
+    "frp内网穿透搭建.md": "2023-02-01",
+    "Innodb数据文件损坏导致Mysql无法启动.md": "2023-05-06",
+    "kafka配置kerberos.md": "2023-02-19",  # 无图片，按同批 nfs/lvs 笔记推定
+    "linux nfs目录共享.md": "2023-02-19",
+    "lvs+keeplived+nginx.md": "2023-02-19",
+    "mysql数据库备份还原.md": "2026-07-05",
+    "OpenEuler22.03安装 Fail2Ban防SSH暴力破解.md": "2025-09-26",
+    "从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（上）.md": "2026-07-12",
+    "从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（中）.md": "2026-07-13",
+    "从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（下）.md": "2026-07-27",
+    "服务器中xmrig挖矿病毒排除分析.md": "2024-01-09",
+    "远程软件rustdesk server搭建.md": "2024-08-15",
+    # ftp与sftp账号创建.md / 企业微信群机器人接口速查.md 是今天新写的，
+    # 已在各自 front-matter 里写了 date: 2026-11-06，走 front-matter 即可。
+}
+
 FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?", re.S)
 
 CSS = r"""
@@ -218,7 +244,7 @@ PAGE_TMPL = """<main class="wrap">
 <article class="article">
 <div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / {group}</div>
 <h1 class="title">{title}</h1>
-<p class="sub">{group} · 约 {chars} 字 · <a href="/notes/{source}">查看 Markdown 原文</a></p>
+<p class="sub">{group} · 发表于 <time datetime="{iso}">{date}</time> · 约 {chars} 字 · <a href="/notes/{source}">查看 Markdown 原文</a></p>
 <div class="md-body">{body}</div>
 <div class="pager">{pager}</div>
 </article>
@@ -334,14 +360,14 @@ def build_pages() -> list[dict]:
         raw = src.read_text(encoding="utf-8")
         meta, text = parse_front_matter(raw)
         dt = datetime.datetime.fromtimestamp(src.stat().st_mtime)
-        explicit_date = bool(meta.get("date"))
-        date = meta.get("date") or dt.strftime("%Y-%m-%d")
+        fixed = meta.get("date") or DATES.get(filename)
+        date = fixed or dt.strftime("%Y-%m-%d")
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
             date = dt.strftime("%Y-%m-%d")
-            explicit_date = False
+            fixed = None
         iso = (
             date + "T00:00:00.000Z"
-            if explicit_date
+            if fixed
             else dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         )
         entries.append({
@@ -408,6 +434,8 @@ def build_pages() -> list[dict]:
             + PAGE_TMPL.format(
                 group=html.escape(e["group"]),
                 title=html.escape(e["title"]),
+                iso=e["iso"],
+                date=e["date"],
                 chars=e["chars"],
                 source=e["filename"],
                 body=e["body"],
@@ -581,6 +609,14 @@ def patch_blog_stream(entries: list[dict]) -> None:
     write(home, s)
 
     s = strip_marks(archive.read_text(encoding="utf-8"), ARCH_B, ARCH_E)
+    years = {e["date"][:4] for e in ordered}
+    # 注入块自带年份标题，后面 Hexo 原生的同年份标题去掉，
+    # 否则归档页会出现两个 2023 分组（老文章也落在 2023）。
+    s = re.sub(
+        r'<div class="article-sort-item year">(\d{4})</div>',
+        lambda m: "" if m.group(1) in years else m.group(0),
+        s,
+    )
     anchor = '<div class="article-sort">'
     s = s.replace(anchor, anchor + ARCH_B + archive_block(ordered) + ARCH_E, 1)
     write(archive, s)
