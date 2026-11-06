@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ftp 和 sftp 账号创建记录 | 文档中心</title>
+<!-- GENERATED-BY: build_notes.py -->
+<meta name="referrer" content="no-referrer">
+<link rel="shortcut icon" href="/img/favicon.png">
+<link rel="stylesheet" href="/notes/doc.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-inner">
+<a class="brand" href="/">Lucky Ye</a><span class="sep">/</span>
+<a class="brand" href="/notes/">文档中心</a>
+<span style="flex:1"></span>
+<a class="nav-link" href="/">博客首页</a>
+<a class="nav-link" href="/archives/">归档</a>
+</div></header>
+<main class="wrap">
+<article class="article">
+<div class="crumb"><a href="/">首页</a> / <a href="/notes/">文档中心</a> / 存储与工具</div>
+<h1 class="title">ftp 和 sftp 账号创建记录</h1>
+<p class="sub">存储与工具 · 约 7332 字 · <a href="/notes/ftp与sftp账号创建.md">查看 Markdown 原文</a></p>
+<div class="md-body"><p>自动升级那边要往机器上丢包，开了个 ftp 账号 evercm，根目录 <code>/data/eversec/data/ftp/evercm</code>，能写的只有下面一层 <code>autoUpgrade</code>。这台机器之前被人手工改过 vsftpd.conf，同一个 key 重复写了好几行，所以顺手把去重也塞进脚本里了。</p>
+<p>密码不往文档里贴，脚本里 <code>FTP_PASS</code> 那个变量执行前自己填，跑完把脚本从共享目录删掉。下面命令都是 root 跑的。</p>
+<h1>1、先把 vsftpd 装上</h1>
+<p>脚本一开头就探测，<code>command -v vsftpd</code> 和 <code>/usr/sbin/vsftpd</code> 都找不到就直接退出。不然后面改配置、建用户全是白忙。</p>
+<pre><code class="language-bash">dnf install -y vsftpd
+systemctl enable --now vsftpd
+</code></pre>
+<p>欧拉 2203 用 dnf，centos7 换 yum，别的发型包名字差不多。</p>
+<h1>2、目录权限这块最容易翻车</h1>
+<p>vsftpd 登录时要一路 chdir 到家目录，中间任何一级目录没有 <code>o+x</code>，客户端就报 <code>500 OOPS: chdir</code>，而且日志里看不出是哪一级。之前查了半天，最后是 <code>/data/eversec</code> 少了执行位。</p>
+<p>所以脚本里从 <code>/</code> 开始把每一级都过一遍，用 <code>stat -c '%A'</code> 取第 10 个字符判断 other 有没有 x，没有就补 <code>chmod o+x</code>。别一上来 <code>chmod -R 755 /data</code>，把整个数据目录的权限都改了不划算。</p>
+<pre><code class="language-bash">mkdir -p /data/eversec/data/ftp/evercm/autoUpgrade
+chown root:root /data/eversec/data/ftp/evercm
+chmod 755 /data/eversec/data/ftp/evercm
+chown evercm:evercm /data/eversec/data/ftp/evercm/autoUpgrade
+chmod 755 /data/eversec/data/ftp/evercm/autoUpgrade
+</code></pre>
+<p>家目录为什么给 root 且 755？开了 <code>chroot_local_user=YES</code> 之后，vsftpd 不允许被锁住的根目录对属主可写，否则直接 <code>500 OOPS: vsftpd: refusing to run with writable root inside chroot()</code>。要么像上面这样把写权限放到子目录，要么加 <code>allow_writeable_chroot=YES</code>，脚本里两个都做了，等于双保险。</p>
+<h1>3、nologin 要写进 /etc/shells</h1>
+<pre><code class="language-bash">grep -qxF '/sbin/nologin' /etc/shells || echo '/sbin/nologin' &gt;&gt; /etc/shells
+</code></pre>
+<p>pam_shells 会拿用户的 shell 去 <code>/etc/shells</code> 里比对，没这一行的话密码输对了也是 <code>530 Login incorrect</code>。这个坑 ftp 和 sftp 都会踩，后面说 sftp 时还会提到。</p>
+<h1>4、vsftpd.conf 重复项</h1>
+<p>需要补齐的三条：</p>
+<pre><code class="language-ini">chroot_local_user=YES
+anonymous_enable=NO
+allow_writeable_chroot=YES
+</code></pre>
+<p>直接 <code>echo &gt;&gt;</code> 追加会出现同一个 key 写好几行，vsftpd 取哪条不好说。脚本里的 <code>dedup_conf</code> 先 <code>grep -cE</code> 数一下，超过 1 行就全删再追加，只有 1 行且值一样就不动，值不一样再加一条（后写的生效）。这样重复跑脚本也不会把配置文件越撑越大。</p>
+<p>改完不用手动备份，先 <code>cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.bak</code> 心里踏实点。</p>
+<h1>5、建用户</h1>
+<pre><code class="language-bash">useradd -d /data/eversec/data/ftp/evercm -s /sbin/nologin evercm
+</code></pre>
+<p><code>/sbin/nologin</code> 是为了不给 shell 登录权限，ftp 认证走 PAM 照样能用。脚本里用 <code>id evercm</code> 判了一下，用户已存在就跳过 useradd，只把目录属主和权限重新刷一遍，所以这个脚本是幂等的，跑几次都不会出事。</p>
+<h1>6、改密别用 passwd</h1>
+<p>这个账号之前被人改过几次密码，PAM 里开了 remember，直接 <code>passwd evercm</code> 会撞密码历史；账户还被 faillock 锁过。所以脚本绕开交互式改密，直接写哈希：</p>
+<pre><code class="language-bash">HASH=$(openssl passwd -6 '实际密码')
+usermod -p &quot;${HASH}&quot; evercm
+faillock --user evercm --reset
+[ -f /etc/security/opasswd ] &amp;&amp; sed -i '/^evercm:/d' /etc/security/opasswd
+</code></pre>
+<p><code>-6</code> 是 SHA-512，别用默认的 <code>-1</code>（md5）。<code>usermod -p</code> 吃的是哈希不是明文，<code>openssl passwd</code> 的输出带随机盐，每次都不一样，正常。</p>
+<p>还有两个黑名单文件，<code>/etc/vsftpd/ftpusers</code> 和 <code>/etc/vsftpd/user_list</code>，里面写了谁谁就登不上，脚本里把 evercm 从这两个文件删掉了。很多时候 530 就是这里拦的，跟密码没关系。</p>
+<h1>7、重启验证</h1>
+<pre><code class="language-bash">systemctl restart vsftpd.service
+curl -sS --connect-timeout 5 -u 'evercm:实际密码' ftp://127.0.0.1/ &gt;/dev/null &amp;&amp; echo ok
+</code></pre>
+<p>curl 能列目录基本就通了。失败先看：</p>
+<pre><code class="language-bash">journalctl -u vsftpd -n 30 --no-pager
+tail -f /var/log/secure
+</code></pre>
+<p>要是从外面连，能登录但 <code>ls</code> 一直卡住，多半是被动模式端口没放行，在配置里加 <code>pasv_min_port=40000</code>、<code>pasv_max_port=40100</code>，防火墙把这段放出去，云主机安全组也别忘。</p>
+<h1>8、sftp 那边</h1>
+<p>sftp 不用装新服务，走的就是 sshd，用内置的 <code>internal-sftp</code>。同一个 evercm 账号可以两个协议都用，新建一个组也行，这边直接按用户匹配：</p>
+<pre><code class="language-bash"># /etc/ssh/sshd_config 末尾追加，Match 段必须放文件最后
+Match User evercm
+    ChrootDirectory /data/eversec/data/ftp
+    ForceCommand internal-sftp -d /evercm
+    X11Forwarding no
+    AllowTcpForwarding no
+    PermitTTY no
+</code></pre>
+<p><code>ChrootDirectory</code> 填的是 evercm 目录的上一级，登录之后落在 <code>/evercm</code> 里。sshd 对 chroot 目录的要求比 vsftpd 还死：从 <code>/</code> 到 chroot 目标每一级都必须 root 所有，group 和 other 都不能有写权限，否则连接直接被断，<code>sftp</code> 只看到一句 <code>Connection closed</code>。</p>
+<pre><code class="language-bash">chown root:root /data /data/eversec /data/eversec/data /data/eversec/data/ftp
+chmod 755 /data /data/eversec /data/eversec/data /data/eversec/data/ftp
+</code></pre>
+<p>前面 ftp 那步刚好把 <code>/data/eversec/data/ftp/evercm</code> 设成了 root:root 755，正好满足 chroot 下家目录不可写的要求，能写的还是 <code>autoUpgrade</code>。两边不用各建一套目录，这点当时还挺省事。</p>
+<p><code>-d /evercm</code> 是登录后切初始目录，比较新的 OpenSSH 才支持，老版本去掉这个参数，客户端进去自己 <code>cd evercm</code>。<code>/sbin/nologin</code> 在 sftp 这边也能过，因为 <code>ForceCommand</code> 根本不启 shell，加上第 3 步已经把它写进 <code>/etc/shells</code>，PAM 不会拦。</p>
+<pre><code class="language-bash">sshd -t &amp;&amp; systemctl restart sshd
+sftp evercm@127.0.0.1
+</code></pre>
+<p><code>sftp</code> 能 <code>ls</code> 到 autoUpgrade 就对了，<code>ssh evercm@127.0.0.1</code> 应该直接被踢掉（ForceCommand 拦住了，不给交互式 shell）。sftp 出问题优先翻 <code>/var/log/secure</code>，里面会有 <code>bad ownership or modes for chroot directory</code> 这种明确的提示。</p>
+<h1>9、几个报错对一下</h1>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>大概是</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>530 Login incorrect</code></td>
+<td><code>/etc/shells</code>、ftpusers、user_list、faillock 锁了、PAM 密码策略</td>
+</tr>
+<tr>
+<td><code>500 OOPS: chdir</code></td>
+<td>家目录链路上某一级缺 <code>o+x</code></td>
+</tr>
+<tr>
+<td><code>refusing to run with writable root inside chroot()</code></td>
+<td>家目录对属主可写，改 755 或开 allow_writeable_chroot</td>
+</tr>
+<tr>
+<td>能登录，<code>ls</code> 卡住</td>
+<td>被动模式端口 / 防火墙 / 安全组</td>
+</tr>
+<tr>
+<td><code>Connection closed</code>（sftp）</td>
+<td>chroot 目录属主或权限不对，看 /var/log/secure</td>
+</tr>
+<tr>
+<td><code>passwd</code> 报密码历史</td>
+<td>用 <code>openssl passwd -6</code> + <code>usermod -p</code></td>
+</tr>
+</tbody>
+</table>
+<p>ftp 是明文传输，账号密码和数据都不过加密，只放在内网用。要过公网就别开 ftp，只用 sftp，或者把 vsftpd 配成 FTPS。</p>
+<p>脚本放在最后，<code>bash add-ftp-user.sh</code> 跑一遍就行，最后一步会自己 curl 验证，不通会以非 0 退出。</p>
+<hr />
+<h1>附：add-ftp-user.sh</h1>
+<blockquote>
+<p>下面这份就是现场用的脚本，<code>FTP_PASS</code> 换成了占位符，执行前改成真实密码；别把带密码的版本提交到公开仓库。其余内容和现场一致。</p>
+</blockquote>
+<pre><code class="language-bash">#!/bin/bash
+set -e
+
+FTP_USER=&quot;evercm&quot;
+FTP_PASS='CHANGE_ME'          # 执行前替换成真实密码，不要提交到公开仓库
+FTP_HOME=&quot;/data/eversec/data/ftp/evercm&quot;
+FTP_SUBDIR=&quot;${FTP_HOME}/autoUpgrade&quot;
+VSFTPD_CONF=&quot;/etc/vsftpd/vsftpd.conf&quot;
+
+log() { echo &quot;[$(date '+%F %T')] $*&quot;; }
+err() { echo &quot;[$(date '+%F %T')] 错误: $*&quot; &gt;&amp;2; }
+
+# 0. 检查 vsftpd 是否安装
+if ! command -v vsftpd &gt;/dev/null 2&gt;&amp;1 &amp;&amp; [ ! -x /usr/sbin/vsftpd ]; then
+    err &quot;未检测到 vsftpd，请先安装&quot;
+    exit 1
+fi
+
+# 1. 创建目录
+mkdir -p &quot;${FTP_SUBDIR}&quot;
+
+# 2. 逐级路径权限：每级补 o+x，否则 chdir 报 500
+path=&quot;${FTP_HOME}&quot;
+parents=()
+while [ &quot;${path}&quot; != &quot;/&quot; ] &amp;&amp; [ -n &quot;${path}&quot; ]; do
+    parents=(&quot;${path}&quot; &quot;${parents[@]}&quot;)
+    path=&quot;$(dirname &quot;${path}&quot;)&quot;
+done
+parents=(&quot;/&quot; &quot;${parents[@]}&quot;)
+for p in &quot;${parents[@]}&quot;; do
+    [ -d &quot;${p}&quot; ] || { err &quot;路径不存在: ${p}&quot;; exit 1; }
+    [ &quot;$(stat -c '%A' &quot;${p}&quot; | cut -c10)&quot; = &quot;x&quot; ] || chmod o+x &quot;${p}&quot;
+done
+
+# 3. 家目录 root 只读，子目录 evercm 可写
+chown root:root &quot;${FTP_HOME}&quot;
+chmod 755 &quot;${FTP_HOME}&quot;
+if id &quot;${FTP_USER}&quot; &gt;/dev/null 2&gt;&amp;1; then
+    chown &quot;${FTP_USER}:${FTP_USER}&quot; &quot;${FTP_SUBDIR}&quot;
+fi
+chmod 755 &quot;${FTP_SUBDIR}&quot;
+
+# 4. /sbin/nologin 加入 /etc/shells
+grep -qxF '/sbin/nologin' /etc/shells 2&gt;/dev/null || echo '/sbin/nologin' &gt;&gt; /etc/shells
+
+# 5. vsftpd 配置去重补齐
+dedup_conf() {
+    local key=&quot;$1&quot; val=&quot;$2&quot; cnt
+    cnt=$(grep -cE &quot;^[[:space:]]*${key}=&quot; &quot;${VSFTPD_CONF}&quot; 2&gt;/dev/null || true)
+    [ &quot;${cnt}&quot; -gt 1 ] &amp;&amp; sed -i &quot;/^[[:space:]]*${key}=/d&quot; &quot;${VSFTPD_CONF}&quot;
+    grep -qxF &quot;${key}=${val}&quot; &quot;${VSFTPD_CONF}&quot; || echo &quot;${key}=${val}&quot; &gt;&gt; &quot;${VSFTPD_CONF}&quot;
+}
+dedup_conf 'chroot_local_user' 'YES'
+dedup_conf 'anonymous_enable' 'NO'
+dedup_conf 'allow_writeable_chroot' 'YES'
+
+# 6. 创建用户（不存在时）
+if ! id &quot;${FTP_USER}&quot; &gt;/dev/null 2&gt;&amp;1; then
+    useradd -d &quot;${FTP_HOME}&quot; -s /sbin/nologin &quot;${FTP_USER}&quot;
+    log &quot;用户 ${FTP_USER} 创建完成&quot;
+    chown root:root &quot;${FTP_HOME}&quot;
+    chmod 755 &quot;${FTP_HOME}&quot;
+    chown &quot;${FTP_USER}:${FTP_USER}&quot; &quot;${FTP_SUBDIR}&quot;
+    chmod 755 &quot;${FTP_SUBDIR}&quot;
+else
+    log &quot;用户 ${FTP_USER} 已存在&quot;
+fi
+
+# 7. 直接写密码哈希，绕过 PAM 改密历史检查
+HASH=$(openssl passwd -6 &quot;${FTP_PASS}&quot;)
+usermod -p &quot;${HASH}&quot; &quot;${FTP_USER}&quot;
+log &quot;密码已设置&quot;
+
+# 8. 解锁账户（失败记录不影响新密码）
+faillock --user &quot;${FTP_USER}&quot; --reset &gt;/dev/null 2&gt;&amp;1 || true
+[ -f /etc/security/opasswd ] &amp;&amp; sed -i &quot;/^${FTP_USER}:/d&quot; /etc/security/opasswd || true
+
+# 9. 黑名单清理
+for f in /etc/vsftpd/ftpusers /etc/vsftpd/user_list; do
+    [ -f &quot;$f&quot; ] &amp;&amp; grep -qxF &quot;${FTP_USER}&quot; &quot;$f&quot; &amp;&amp; sed -i &quot;/^${FTP_USER}$/d&quot; &quot;$f&quot; || true
+done
+
+# 10. 重启并验证
+systemctl restart vsftpd.service
+if curl -sS --connect-timeout 5 -u &quot;${FTP_USER}:${FTP_PASS}&quot; &quot;ftp://127.0.0.1/&quot; &gt;/dev/null; then
+    log &quot;FTP 登录验证成功&quot;
+else
+    err &quot;FTP 登录验证失败，检查 journalctl -u vsftpd -n 30 --no-pager&quot;
+    exit 1
+fi
+
+log &quot;ftp账号 ${FTP_USER} 配置完成&quot;
+</code></pre></div>
+<div class="pager"><a href="/notes/rustdesk-server.html">&laquo; 远程软件rustdesk server搭建</a><a href="/notes/doc-f769f0c0ab.html">从零搭建企业级 CI_CD：Jenkins+GitLab+Harbor 全链路实战指南（上） &raquo;</a></div>
+</article>
+</main>
+<div class="footer">Lucky Ye · 运维工作记录 · 由 scripts/build_notes.py 从 notes/*.md 生成</div>
+</body>
+</html>
