@@ -12,9 +12,11 @@ The script is idempotent: run it again after adding/removing md files.
 """
 from __future__ import annotations
 
+import datetime
 import html
 import re
 from pathlib import Path
+from urllib.parse import quote
 
 import markdown
 
@@ -218,6 +220,7 @@ def build_pages() -> list[dict]:
             continue
         text = src.read_text(encoding="utf-8")
         title = src.stem
+        dt = datetime.datetime.fromtimestamp(src.stat().st_mtime)
         entries.append({
             "filename": filename,
             "slug": slug,
@@ -225,6 +228,9 @@ def build_pages() -> list[dict]:
             "title": title,
             "chars": len(text),
             "body": render_md(text),
+            "date": dt.strftime("%Y-%m-%d"),
+            "iso": dt.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "url": "/notes/%s.html" % slug,
         })
 
     cards = []
@@ -293,12 +299,14 @@ def build_pages() -> list[dict]:
 def patch_navigation() -> int:
     """Inject the menu item into every nav copy (desktop + mobile sidebar)."""
     changed = 0
+    synced = 0
     for path in ROOT.rglob("*.html"):
         if ".git" in path.parts or NOTES.name in path.parts:
             continue
         s = path.read_text(encoding="utf-8")
         if HEXO_MARK not in s or MENU_ANCHOR not in s:
             continue
+        synced += 1
         # Strip previous injections first so the script stays idempotent.
         cleaned = s.replace(MENU_ITEM, "")
         patched = cleaned.replace(MENU_ANCHOR, MENU_ITEM + MENU_ANCHOR)
@@ -306,7 +314,7 @@ def patch_navigation() -> int:
             continue
         write(path, patched)
         changed += 1
-    print("  nav entry injected into %d pages (both menu copies)" % changed)
+    print("  nav entry synced in %d pages (%d rewritten, both menu copies)" % (synced, changed))
     return changed
 
 
@@ -340,10 +348,134 @@ def patch_search(entries: list[dict]) -> None:
     print("  search.xml now indexes %d extra entries" % len(entries))
 
 
+ORIGINAL_POSTS = 3  # existing Hexo articles: posts/2,3,4.html
+
+COVER_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='640' height='400'>"
+    "<rect width='640' height='400' fill='#2b3a55'/>"
+    "<circle cx='520' cy='90' r='160' fill='#3f5b8f' opacity='0.45'/>"
+    "<text x='44' y='230' font-family='sans-serif' font-size='76' "
+    "fill='#ffffff' opacity='0.92'>DOC</text></svg>"
+)
+COVER = "data:image/svg+xml," + quote(COVER_SVG, safe="")
+IMG_FALLBACK = "this.onerror=null;this.src='/img/404.jpg'"
+
+POSTS_B, POSTS_E = "<!-- NOTES_POSTS_BEGIN -->", "<!-- NOTES_POSTS_END -->"
+ASIDE_B, ASIDE_E = "<!-- NOTES_ASIDE_BEGIN -->", "<!-- NOTES_ASIDE_END -->"
+ARCH_B, ARCH_E = "<!-- NOTES_ARCH_BEGIN -->", "<!-- NOTES_ARCH_END -->"
+
+
+def strip_marks(s: str, begin: str, end: str) -> str:
+    return re.sub(re.escape(begin) + r".*?" + re.escape(end), "", s, flags=re.S)
+
+
+def card_html(e: dict, index: int) -> str:
+    side = "left" if index % 2 == 0 else "right"
+    t = html.escape(e["title"], quote=True)
+    excerpt = html.escape(plain_text(e["body"], 200))
+    return (
+        '<div class="recent-post-item"><div class="post_cover {side}">'
+        '<a href="{url}" title="{t}"><img class="post_bg" src="{cover}" alt="{t}"></a></div>'
+        '<div class="recent-post-info"><a class="article-title" href="{url}" title="{t}">{t}</a>'
+        '<div class="article-meta-wrap"><span class="post-meta-date">'
+        '<i class="far fa-calendar-alt"></i><span class="article-meta-label">发表于</span>'
+        '<time datetime="{iso}" title="发表于 {date}">{date}</time></span></div>'
+        '<div class="content">{excerpt}</div></div></div>'
+    ).format(side=side, url=e["url"], t=t, cover=COVER,
+             iso=e["iso"], date=e["date"], excerpt=excerpt)
+
+
+def aside_html(e: dict) -> str:
+    t = html.escape(e["title"], quote=True)
+    return (
+        '<div class="aside-list-item"><a class="thumbnail" href="{url}" title="{t}">'
+        '<img src="{cover}" onerror="{fb}" alt="{t}"/></a><div class="content">'
+        '<a class="title" href="{url}" title="{t}">{t}</a>'
+        '<time datetime="{iso}" title="发表于 {date}">{date}</time></div></div>'
+    ).format(url=e["url"], t=t, cover=COVER, fb=IMG_FALLBACK,
+             iso=e["iso"], date=e["date"])
+
+
+def archive_html(e: dict) -> str:
+    t = html.escape(e["title"], quote=True)
+    return (
+        '<div class="article-sort-item"><a class="article-sort-item-img" href="{url}" title="{t}">'
+        '<img src="{cover}" alt="{t}" onerror="{fb}"></a><div class="article-sort-item-info">'
+        '<div class="article-sort-item-time"><i class="far fa-calendar-alt"></i>'
+        '<time class="post-meta-date-created" datetime="{iso}" title="发表于 {date}">{date}</time></div>'
+        '<a class="article-sort-item-title" href="{url}" title="{t}">{t}</a></div></div>'
+    ).format(url=e["url"], t=t, cover=COVER, fb=IMG_FALLBACK,
+             iso=e["iso"], date=e["date"])
+
+
+def patch_blog_stream(entries: list[dict]) -> None:
+    """Merge the docs into the Hexo article stream (home, counters, widgets, archive)."""
+    total = ORIGINAL_POSTS + len(entries)
+    latest = max((e["iso"] for e in entries), default=None)
+    home = ROOT / "index.html"
+    archive = ROOT / "archives" / "index.html"
+
+    s = strip_marks(home.read_text(encoding="utf-8"), POSTS_B, POSTS_E)
+    anchor = 'id="recent-posts">'
+    s = s.replace(
+        anchor,
+        anchor + POSTS_B + "".join(card_html(e, i) for i, e in enumerate(entries)) + POSTS_E,
+        1,
+    )
+    write(home, s)
+
+    s = strip_marks(archive.read_text(encoding="utf-8"), ARCH_B, ARCH_E)
+    anchor = '<div class="article-sort">'
+    year = '<div class="article-sort-item year">%s</div>' % (entries[0]["date"][:4] if entries else "")
+    s = s.replace(
+        anchor,
+        anchor + ARCH_B + year + "".join(archive_html(e) for e in entries) + ARCH_E,
+        1,
+    )
+    write(archive, s)
+
+    widgets = 0
+    for path in ROOT.rglob("*.html"):
+        if ".git" in path.parts or NOTES.name in path.parts:
+            continue
+        s = path.read_text(encoding="utf-8")
+        if HEXO_MARK not in s:
+            continue
+        s = strip_marks(s, ASIDE_B, ASIDE_E)
+        i = s.find("card-recent-post")
+        j = s.find('<div class="aside-list">', i) if i >= 0 else -1
+        if j >= 0:
+            cut = j + len('<div class="aside-list">')
+            s = (
+                s[:cut]
+                + ASIDE_B
+                + "".join(aside_html(e) for e in entries[:5])
+                + ASIDE_E
+                + s[cut:]
+            )
+            widgets += 1
+        s = re.sub(
+            r'(<div class="headline">文章</div><div class="length-num">)\d+(</div>)',
+            lambda m: m.group(1) + str(total) + m.group(2),
+            s,
+        )
+        s = re.sub(r"文章总览 - \d+", "文章总览 - %d" % total, s)
+        if latest:
+            s = re.sub(
+                r'(id="last-push-date" data-lastPushDate=")[^"]+(")',
+                lambda m: m.group(1) + latest + m.group(2),
+                s,
+            )
+        write(path, s)
+
+    print("  article stream: %d posts total, %d sidebar widgets updated" % (total, widgets))
+
+
 def main() -> None:
     print("Building notes from %s" % NOTES)
     entries = build_pages()
     patch_navigation()
+    patch_blog_stream(entries)
     patch_search(entries)
     if not NOJEKYLL.exists():
         NOJEKYLL.write_text("", encoding="utf-8")
